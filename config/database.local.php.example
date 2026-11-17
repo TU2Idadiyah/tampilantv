@@ -1,0 +1,18 @@
+<?php
+/**
+ * config/database.local.php
+ * Kredensial Database Khusus Server / Hosting cPanel
+ *
+ * Salin file ini menjadi 'database.local.php' di folder 'config/'
+ * jika Anda ingin mengonfigurasi database langsung tanpa file .env
+ */
+
+return [
+    'DB_HOST' => 'localhost',
+    'DB_PORT' => '3306',
+    'DB_DATABASE' => 'dptmqocf_staidisplay', // Sesuaikan nama database di cPanel MySQL
+    'DB_USERNAME' => 'dptmqocf_dbuser',      // Sesuaikan username database di cPanel MySQL
+    'DB_PASSWORD' => 'Password_Database_Anda',
+    'DB_CHARSET' => 'utf8mb4',
+    'DISABLE_SUBNET_CHECK' => true,
+];

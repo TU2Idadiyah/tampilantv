@@ -42,8 +42,42 @@ if (!function_exists('loadEnvFile')) {
     }
 }
 
-// Muat .env jika tersedia di root proyek
-loadEnvFile(dirname(__DIR__) . '/.env');
+// Muat .env jika tersedia di berbagai kemungkinan path hosting & lokal
+$candidateEnvPaths = [
+    dirname(__DIR__) . '/.env',
+    dirname(__DIR__, 2) . '/.env',
+    dirname(__DIR__, 2) . '/public_html/.env',
+    dirname(__DIR__, 2) . '/repositories/tampilantv/.env',
+    (!empty($_SERVER['DOCUMENT_ROOT']) ? rtrim($_SERVER['DOCUMENT_ROOT'], '/') . '/.env' : null),
+];
+$activeEnvFile = null;
+foreach ($candidateEnvPaths as $p) {
+    if (!empty($p) && file_exists($p) && is_readable($p)) {
+        loadEnvFile($p);
+        $activeEnvFile = $p;
+        break;
+    }
+}
+
+// Muat konfigurasi PHP lokal jika tersedia (sangat fleksibel untuk cPanel hosting tanpa .env)
+$localConfigPaths = [
+    __DIR__ . '/database.local.php',
+    dirname(__DIR__) . '/config/database.local.php',
+    dirname(__DIR__, 2) . '/database.local.php',
+];
+foreach ($localConfigPaths as $lcp) {
+    if (file_exists($lcp) && is_readable($lcp)) {
+        $localData = @include $lcp;
+        if (is_array($localData)) {
+            foreach ($localData as $k => $v) {
+                putenv("{$k}={$v}");
+                $_ENV[$k] = $v;
+                $_SERVER[$k] = $v;
+            }
+            break;
+        }
+    }
+}
 
 // 2. Helper Pembaca Environment
 if (!function_exists('env')) {
@@ -86,9 +120,24 @@ if (!function_exists('getDatabasePdo')) {
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                 PDO::ATTR_EMULATE_PREPARES => false,
+                PDO::ATTR_TIMEOUT => 3,
             ]);
         } catch (PDOException $e) {
-            // Log kesalahan dan lempar kembali
+            // Coba fallback host jika 127.0.0.1 gagal (misal jika server Linux hanya izinkan socket 'localhost')
+            if ($host === '127.0.0.1') {
+                try {
+                    $dsnFallback = "mysql:host=localhost;dbname={$dbname};charset={$charset}";
+                    $pdo = new PDO($dsnFallback, $username, $password, [
+                        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                        PDO::ATTR_EMULATE_PREPARES => false,
+                        PDO::ATTR_TIMEOUT => 3,
+                    ]);
+                    return $pdo;
+                } catch (PDOException $e2) {
+                    // lanjut throw error asli
+                }
+            }
             error_log("Database Connection Failed: " . $e->getMessage());
             throw new RuntimeException("Koneksi ke database gagal. Pastikan konfigurasi di .env atau database.php sudah benar: " . $e->getMessage());
         }

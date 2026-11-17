@@ -36,11 +36,24 @@ try {
 
     echo json_encode($state, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
-} catch (Exception $e) {
+} catch (Throwable $e) {
+    error_log("state.php error: " . $e->getMessage());
+    $cacheFile = dirname(__DIR__, 3) . '/storage/cache_state.json';
+    if (file_exists($cacheFile)) {
+        header('Content-Type: application/json; charset=utf-8');
+        header('Cache-Control: public, max-age=1');
+        $cached = json_decode((string) file_get_contents($cacheFile), true);
+        if (is_array($cached)) {
+            $cached['waktu_server'] = date('c');
+            echo json_encode($cached, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            exit;
+        }
+    }
+
     http_response_code(500);
     header('Content-Type: application/json; charset=utf-8');
     echo json_encode([
-        'kode' => 'DATABASE_ERROR',
-        'pesan' => 'Gagal membaca state dari database: ' . $e->getMessage()
+        'kode' => 'SERVER_ERROR',
+        'pesan' => 'Gagal membaca state tampilan: ' . $e->getMessage()
     ]);
 }

@@ -10,12 +10,21 @@ use PDO;
 
 class DisplayStateService
 {
-    protected PDO $pdo;
+    protected ?PDO $pdo = null;
     protected WeatherService $weatherService;
 
     public function __construct(?PDO $pdo = null, ?WeatherService $weatherService = null)
     {
-        $this->pdo = $pdo ?? getDatabasePdo();
+        if ($pdo !== null) {
+            $this->pdo = $pdo;
+        } else {
+            try {
+                $this->pdo = getDatabasePdo();
+            } catch (\Throwable $e) {
+                $this->pdo = null;
+                error_log("DisplayStateService: Database unavailable, using cache/fallback: " . $e->getMessage());
+            }
+        }
         $this->weatherService = $weatherService ?? new WeatherService();
     }
 
@@ -23,9 +32,17 @@ class DisplayStateService
     {
         date_default_timezone_set('Asia/Jakarta');
         $today = date('Y-m-d');
-        $currentIsoDay = (int) date('N'); // 1 = Senin .. 7 = Minggu
+        $cacheFile = dirname(__DIR__, 2) . '/storage/cache_state.json';
 
-        // 1. Pengaturan
+        // Jika database offline, gunakan cache lokal atau data fallback bawaan
+        if ($this->pdo === null) {
+            return $this->getFallbackState($cacheFile, $today);
+        }
+
+        try {
+            $currentIsoDay = (int) date('N'); // 1 = Senin .. 7 = Minggu
+
+            // 1. Pengaturan
         $settingsRows = $this->pdo->query("SELECT `kunci`, `nilai` FROM `pengaturan`")->fetchAll();
         $pengaturan = [];
         foreach ($settingsRows as $row) {
@@ -346,7 +363,7 @@ class DisplayStateService
             'durasi_detik' => $videoRow ? (int) $videoRow['durasi_detik'] : 180
         ];
 
-        return [
+        $state = [
             'versi' => '1.0.0-' . str_replace('-', '', $today),
             'waktu_server' => date('c'),
             'kampus' => $kampusData,
@@ -370,6 +387,68 @@ class DisplayStateService
             'agenda' => $agendaList,
             'pengumuman' => $pengumumanList,
             'video' => $videoData
+        ];
+
+        // Simpan snapshot state ke cache lokal agar TV tetap menyala indah jika koneksi DB terputus
+        @file_put_contents($cacheFile, json_encode($state, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+
+        return $state;
+        } catch (\Throwable $e) {
+            error_log("DisplayStateService query failed: " . $e->getMessage());
+            return $this->getFallbackState($cacheFile, $today);
+        }
+    }
+
+    public function getFallbackState(string $cacheFile, string $today): array
+    {
+        if (file_exists($cacheFile) && is_readable($cacheFile)) {
+            $json = @file_get_contents($cacheFile);
+            $cached = json_decode((string) $json, true);
+            if (is_array($cached)) {
+                $cached['waktu_server'] = date('c');
+                $cached['cuaca'] = $this->weatherService->getWeather();
+                return $cached;
+            }
+        }
+
+        return [
+            'versi' => '1.0.0-' . str_replace('-', '', $today),
+            'waktu_server' => date('c'),
+            'kampus' => [
+                'nama' => 'STAI SIDOGIRI',
+                'subjudul' => 'Sekolah Tinggi Agama Islam Sidogiri · Pasuruan, Jawa Timur',
+                'kota' => 'Pasuruan',
+                'logo_url' => 'storage/media/logo_1793795249_5796398b.png'
+            ],
+            'pengaturan' => [
+                'slide_detik' => 10,
+                'halaman_detik' => 10,
+                'video_aktif' => false,
+                'hijriah_offset' => 0,
+                'qr_rotasi_detik' => 30,
+                'spot_ms' => 1300
+            ],
+            'cuaca' => $this->weatherService->getWeather(),
+            'pengurus' => [],
+            'dosen_hari_ini' => [],
+            'jadwal_hari_ini' => [],
+            'mahasiswa' => [
+                'angkatan' => [2023, 2024, 2025, 2026],
+                'prodi' => [
+                    ['nama' => 'Psikologi Islam', 'jumlah' => [24, 51, 46, 175]],
+                    ['nama' => 'Manajemen Bisnis Syariah', 'jumlah' => [15, 36, 51, 130]]
+                ],
+                'total' => 528
+            ],
+            'agenda' => [
+                [
+                    'judul' => 'Wisuda & Haflah Akhirussanah',
+                    'lokasi' => 'Aula Utama STAI Sidogiri',
+                    'mulai' => date('c', strtotime('+7 days'))
+                ]
+            ],
+            'pengumuman' => ['Selamat Datang di Sistem Informasi Layar Kampus STAI Sidogiri'],
+            'video' => ['aktif' => false, 'url' => '', 'durasi_detik' => 180]
         ];
     }
 

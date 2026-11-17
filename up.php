@@ -15,10 +15,20 @@ $checks = [
     'timestamp' => date('c'),
     'database' => 'disconnected',
     'storage' => 'unwritable',
-    'php_version' => PHP_VERSION
+    'php_version' => PHP_VERSION,
+    'diagnostik' => []
 ];
 
 require_once __DIR__ . '/config/database.php';
+
+$checks['diagnostik'] = [
+    'env_dimuat_dari' => $activeEnvFile ?? '(tidak ada file .env yang dimuat)',
+    'db_host' => env('DB_HOST', '127.0.0.1'),
+    'db_database' => env('DB_DATABASE', 'stai_display'),
+    'db_user' => env('DB_USERNAME', 'root'),
+    'ada_password' => !empty(env('DB_PASSWORD')),
+    'cache_state_tersedia' => file_exists(__DIR__ . '/storage/cache_state.json'),
+];
 
 $healthy = true;
 
