@@ -1,0 +1,252 @@
+openapi: 3.0.3
+info:
+  title: API Sistem Informasi Layar Kampus STAI Sidogiri
+  description: Kontrak API resmi untuk sinkronisasi Layar TV Kiosk, Presensi HP Pengurus, dan Pemantauan Sistem.
+  version: 1.0.0
+servers:
+  - url: http://localhost/tampilantv
+    description: Server Lokal XAMPP
+
+paths:
+  /up:
+    get:
+      summary: Health Check Sistem
+      description: Endpoint monitoring untuk memastikan database MySQL dan penyimpanan lokal berfungsi normal.
+      responses:
+        '200':
+          description: Sistem berjalan normal (Healthy)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  timestamp:
+                    type: string
+                    format: date-time
+                  database:
+                    type: string
+                    example: connected
+                  storage:
+                    type: string
+                    example: writable
+        '503':
+          description: Gangguan infrastruktur database atau penyimpanan
+
+  /api/v1/display/state:
+    get:
+      summary: State Tampilan Layar TV
+      description: Mengambil seluruh payload data tampilan TV. Mendukung header ETag dan mengembalikan HTTP 304 bila data tidak berubah.
+      security:
+        - DisplayKeyAuth: []
+      parameters:
+        - in: header
+          name: If-None-Match
+          schema:
+            type: string
+          description: Hash ETag revisi state sebelumnya
+        - in: header
+          name: X-Display-Id
+          schema:
+            type: string
+          description: Identitas unit layar TV (kiosk)
+      responses:
+        '200':
+          description: Data state layar lengkap
+          headers:
+            ETag:
+              schema:
+                type: string
+              description: Hash unik revisi data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DisplayState'
+        '304':
+          description: Data tidak berubah (Not Modified)
+        '401':
+          description: Kunci layar (Display Key) tidak disertakan atau salah
+
+  /api/v1/display/qr:
+    get:
+      summary: Token QR Bertanda Tangan HMAC
+      description: Mengembalikan URL QR presensi bertanda tangan untuk pengurus yang belum hadir hari ini beserta countdown detik rotasi.
+      security:
+        - DisplayKeyAuth: []
+      responses:
+        '200':
+          description: Daftar token QR aktif
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  jendela:
+                    type: integer
+                    example: 59792947
+                  waktu_berlaku_detik:
+                    type: integer
+                    example: 28
+                  qr:
+                    type: object
+                    additionalProperties:
+                      type: string
+                      example: http://192.168.1.10/tampilantv/absen/scan?c=3.59792947.f30f...
+
+  /api/v1/display/heartbeat:
+    post:
+      summary: Heartbeat Layar TV
+      description: Mencatat bahwa unit layar TV kiosk masih aktif dan menampilkan konten.
+      security:
+        - DisplayKeyAuth: []
+      parameters:
+        - in: header
+          name: X-Display-Id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Heartbeat diterima
+
+  /api/v1/absen/login:
+    post:
+      summary: Pendaftaran Perangkat HP Pengurus
+      description: Menukar NIP dan PIN 6-digit dengan cookie perangkat `stai_device_token` (HttpOnly, 90 hari, max 2 perangkat per pengurus).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - nip
+                - pin
+              properties:
+                nip:
+                  type: string
+                  example: "1985010103"
+                pin:
+                  type: string
+                  example: "123456"
+      responses:
+        '200':
+          description: Pendaftaran perangkat berhasil, cookie diterbitkan
+        '401':
+          description: NIP atau PIN salah
+        '422':
+          description: Batas 2 perangkat aktif telah tercapai
+
+  /api/v1/absen/scan:
+    post:
+      summary: Verifikasi dan Pencatatan Presensi QR (5 Lapis)
+      description: Memverifikasi subnet LAN, cookie HP, kepemilikan token QR vs HP, tanda tangan HMAC + jendela waktu, serta absensi harian unik.
+      security:
+        - DeviceCookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - c
+              properties:
+                c:
+                  type: string
+                  example: "3.59792947.f30f9522..."
+      responses:
+        '200':
+          description: Presensi berhasil dicatat
+        '401':
+          description: Belum login / perangkat belum terdaftar
+        '403':
+          description: Di luar subnet Wi-Fi kampus atau QR milik pengurus lain
+        '409':
+          description: Sudah melakukan presensi hari ini (SUDAH_ABSEN)
+        '410':
+          description: Token QR sudah kedaluwarsa (QR_KEDALUWARSA)
+
+  /api/v1/absen/saya:
+    get:
+      summary: Status Kehadiran Pengurus Hari Ini
+      security:
+        - DeviceCookieAuth: []
+      responses:
+        '200':
+          description: Profil pengurus dan status hadir hari ini
+
+  /api/v1/absen/logout:
+    post:
+      summary: Cabut Pendaftaran Perangkat Ini
+      security:
+        - DeviceCookieAuth: []
+      responses:
+        '200':
+          description: Cookie dihapus dan perangkat ditandai dicabut
+
+components:
+  securitySchemes:
+    DisplayKeyAuth:
+      type: apiKey
+      in: header
+      name: X-Display-Key
+    DeviceCookieAuth:
+      type: apiKey
+      in: cookie
+      name: stai_device_token
+
+  schemas:
+    DisplayState:
+      type: object
+      properties:
+        versi:
+          type: string
+        waktu_server:
+          type: string
+          format: date-time
+        pengaturan:
+          type: object
+        cuaca:
+          type: object
+          properties:
+            suhu_c:
+              type: integer
+            kode:
+              type: integer
+            usang:
+              type: boolean
+        pengurus:
+          type: array
+          items:
+            type: object
+        dosen_hari_ini:
+          type: array
+          items:
+            type: object
+        jadwal_hari_ini:
+          type: array
+          items:
+            type: object
+        mahasiswa:
+          type: object
+        agenda:
+          type: array
+          items:
+            type: object
+        pengumuman:
+          type: array
+          items:
+            type: string
+        video:
+          type: object
+          properties:
+            aktif:
+              type: boolean
+            url:
+              type: string
+            durasi_detik:
+              type: integer
+

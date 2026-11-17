@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <title>Layar Informasi STAI Sidogiri</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Typography: Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Icon Set: Font Awesome 6 Free (Solid) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <!-- Stylesheet Display Bento Modern -->
+  <link rel="stylesheet" href="css/display.css">
+  <!-- Pustaka QR lokal (tanpa dependensi CDN online) -->
+  <script src="js/qrcode.min.js"></script>
+</head>
+<body>
+  <div id="stage">
+    <!-- Ambient Soft Glow Blobs -->
+    <div class="blob b1"></div>
+    <div class="blob b2"></div>
+    <div class="blob b3"></div>
+    <div class="blob b4"></div>
+
+    <!-- Indikator Jaringan Kiosk -->
+    <div id="net-status">
+      <i class="fa-solid fa-triangle-exclamation"></i>
+      <span>Jaringan Terputus · Menampilkan Data Lokal</span>
+    </div>
+
+    <!-- Header Bento Bar -->
+    <header>
+      <div class="logo" id="logo"><span>STAI</span></div>
+      <div class="brand">
+        <h1 id="brandTitle">STAI SIDOGIRI</h1>
+        <p id="brandSubtitle">Sekolah Tinggi Agama Islam Sidogiri · Pasuruan, Jawa Timur</p>
+      </div>
+      <div class="hd-right">
+        <div class="weather">
+          <div class="ic" id="wIc"><i class="fa-solid fa-cloud-sun"></i></div>
+          <div>
+            <div class="t" id="wT">--°C</div>
+            <div class="d" id="wD">Memuat...</div>
+          </div>
+        </div>
+        <div class="dates">
+          <div class="m" id="dM"></div>
+          <div class="h" id="dH"></div>
+        </div>
+        <div class="clock" id="clk"></div>
+      </div>
+    </header>
+
+    <!-- KIRI: Pengurus & QR Presensi -->
+    <section id="left">
+      <div class="panel-title">
+        <i class="fa-solid fa-user-check"></i>
+        <span>Kehadiran Pengurus dan Tendik</span>
+        <span class="cnt" id="cnt">0 / 0</span>
+      </div>
+      <div class="lcard">
+        <div class="lhead">
+          <span></span>
+          <span>Nama</span>
+          <span>Status</span>
+          <span>Waktu</span>
+        </div>
+        <div class="lrows" id="list"></div>
+      </div>
+
+      <div class="panel-title">
+        <i class="fa-solid fa-qrcode"></i>
+        <span>Scan Presensi</span>
+        <small id="qsm"></small>
+      </div>
+      <div class="cards" id="cards"></div>
+    </section>
+
+    <!-- TENGAH: Bento Slider Konten -->
+    <section id="mid">
+      <div class="slides" id="slides">
+        <div class="slide" id="s-jadwal">
+          <h2>
+            <i class="fa-solid fa-book-open-reader"></i>
+            <span>Jadwal Kuliah Hari Ini</span>
+            <span class="cnt" id="jCnt">0 Jadwal</span>
+            <em id="jDay"></em>
+          </h2>
+          <div id="jBody"></div>
+          <div class="j-pagination" id="jPagination" style="display:none">
+            <div class="j-pages" id="jPages"></div>
+            <div class="j-page-info" id="jPageInfo"></div>
+          </div>
+        </div>
+
+        <div class="slide" id="s-mhs">
+          <h2>
+            <i class="fa-solid fa-graduation-cap"></i>
+            <span>Data Mahasiswa</span>
+            <em>Per Prodi &amp; Angkatan</em>
+          </h2>
+          <div class="tot">
+            <div class="big">
+              <b data-count id="tAll">0</b>
+              <span>Total Mahasiswa Aktif</span>
+            </div>
+            <div class="big alt">
+              <b data-count id="tProdi">0</b>
+              <span>Program Studi</span>
+            </div>
+            <div class="big alt">
+              <b data-count id="tAng">0</b>
+              <span>Angkatan</span>
+            </div>
+          </div>
+          <div id="mBody"></div>
+        </div>
+
+        <div class="slide" id="s-agenda">
+          <h2>
+            <i class="fa-solid fa-calendar-days"></i>
+            <span>Agenda &amp; Event Mendatang</span>
+          </h2>
+          <div class="ag" id="aBody"></div>
+        </div>
+
+        <div class="slide" id="s-video" data-hold="video">
+          <h2>
+            <i class="fa-solid fa-circle-play"></i>
+            <span>Profil STAI Sidogiri</span>
+          </h2>
+          <div class="vid" id="vidContainer">
+            <video id="player" muted playsinline preload="auto"></video>
+            <div class="vprog" id="vprog"></div>
+          </div>
+        </div>
+      </div>
+      <div class="dots" id="dots"></div>
+    </section>
+
+    <!-- KANAN: Dosen Hari Ini -->
+    <section id="dosen">
+      <div class="panel-title">
+        <i class="fa-solid fa-chalkboard-user"></i>
+        <span>Dosen Hadir Hari Ini</span>
+        <span class="cnt" id="dcnt">0</span>
+      </div>
+      <div class="dl" id="dl"></div>
+      <div class="d-pagination" id="dPagination" style="display:none">
+        <div class="d-pages" id="dPages"></div>
+        <div class="d-page-info" id="dPageInfo"></div>
+      </div>
+    </section>
+
+    <!-- FOOTER: Running Text Ticker -->
+    <footer>
+      <div class="lbl">
+        <i class="fa-solid fa-bullhorn"></i>
+        <span>PENGUMUMAN</span>
+      </div>
+      <div class="tk"><div id="tk"></div></div>
+    </footer>
+
+    <!-- Portal Dock Button (Akses Terpadu 1 Domain: Admin · Dosen · Pengurus) -->
+    <a href="login.php" class="portal-dock-btn" title="Buka Portal Masuk Kampus (Admin · Dosen · Pengurus)">
+      <i class="fa-solid fa-arrow-right-to-bracket"></i>
+      <span>Portal Kampus</span>
+    </a>
+  </div>
+
+  <!-- Skrip Aplikasi Modular -->
+  <script src="js/api.js"></script>
+  <script src="js/qr.js"></script>
+  <script src="js/components.js"></script>
+  <script src="js/slider.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

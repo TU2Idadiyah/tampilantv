@@ -1,0 +1,56 @@
+hari;jam_mulai;jam_selesai;mata_kuliah;kelas;kode_dosen;ruang;kode_prodi
+Senin;16.30;17.30;Matematika Ekonomi;MBS-01;DSN3;Meet Lt.2;MBS
+Senin;19.30;20.30;Pengantar Manajemen;MBS-01;DSN1;Meet Lt.2;MBS
+Senin;16.30;17.30;Manajemen Sumberdaya Insani;MBS-03;DSN1;STAI 03;MBS
+Senin;19.30;20.30;Pengantar Akuntansi 2;MBS-03;DSN3;STAI 03;MBS
+Senin;16.30;17.30;Metode Penelitian 2;MBS-07;DSN15;Meet Lt.1;MBS
+Senin;19.30;20.30;Perilaku Konsumen;MBS-05;DSN2;Meet Lt.1;MBS
+Selasa;16.30;17.30;Perpajakan;MBS-05;DSN13;Meet Lt.1;MBS
+Senin;16.30;17.30;Manajemen Proyek;MBS-05;DSN14;STAI 02;MBS
+Selasa;08.00;09.00;Bahasa Indonesia;PSI-01;DSN10;Meet Lt.2;PSI
+Selasa;09.30;10.30;Pendidikan Pancasila;PSI-01;DSN9;Meet Lt.2;MBS
+Selasa;09.30;10.30;Studi Alqur'An Dan Hadis;MBS-03;DSN8;STAI 03;PSI
+Selasa;16.30;17.30;Bahasa Indonesia;PSI-01;DSN11;STAI 02;PSI
+Selasa;19.30;20.30;Pendidikan Pancasila;PSI-01;DSN7;STAI 02;PSI
+Selasa;16.30;17.30;Kode Etik Psikologi;PSI-03;DSN7;STAI 01;PSI
+Selasa;19.30;20.30;Studi Hadits;PSI-03;DSN10;STAI 01;PSI
+Selasa;16.30;17.30;Psikologi Konseling;PSI-05;DSN17;STAI 04;PSI
+Selasa;19.30;20.30;Metode Penelitian Kualitatif;PSI-05;DSN12;STAI 04;PSI
+Selasa;16.30;17.30;Psikologi Kewirausahaan;PSI-07;DSN6;Meet Lt.2;PSI
+Selasa;19.30;20.30;Psikoterapi Islam;PSI-07;DSN16;Meet Lt.2;PSI
+Selasa;16.30;17.30;Manajemen Pemasaran Syariah;MBS-03;DSN15;STAI 03;MBS
+Selasa;19.30;20.30;Manajemen Risiko;MBS-07;DSN13;Meet Lt.1;MBS
+Rabu;16.30;17.30;Bahasa Arab;MBS-01;DSN9;Meet Lt.2;MBS
+Rabu;19.30;20.30;Bahasa Inggris 1;MBS-01;DSN9;Meet Lt.2;MBS
+Rabu;16.30;17.30;Manajemen Merek;MBS-05;DSN15;Meet Lt.1;MBS
+Rabu;19.30;20.30;Manajemen Pemasaran Ritel;MBS-05;DSN14;Meet Lt.1;MBS
+Kamis;16.30;17.30;Filsafat Ilmu dan Logika;PSI-01;DSN6;STAI 02;PSI
+Kamis;18.00;19.00;Sosiologi;PSI-01;DSN16;STAI 02;PSI
+Kamis;19.30;20.30;Pengantar Studi Islam;PSI-01;DSN11;STAI 02;PSI
+Kamis;16.30;17.30;Islam dan Sains;PSI-03;DSN11;STAI 01;PSI
+Kamis;18.00;19.00;Psikologi Industri & Organisasi;PSI-03;DSN6;STAI 01;PSI
+Kamis;19.30;20.30;Dasar-Dasar Asesmen Psikologi;PSI-03;DSN5;STAI 01;PSI
+Kamis;16.30;17.30;Psikometri;PSI-05;DSN16;STAI 04;PSI
+Kamis;18.00;19.00;Psikologi Abnormal;PSI-05;DSN5;STAI 04;PSI
+Kamis;19.30;20.30;Tes Inteligensi;PSI-05;DSN6;STAI 04;PSI
+Kamis;18.00;19.00;Seminar Proposal;PSI-07;DSN12;Meet Lt.2;PSI
+Kamis;19.30;20.30;Psikologi Pesantren;PSI-07;DSN12;Meet Lt.2;PSI
+Kamis;16.30;17.30;Kewarganegaraan;MBS-03;DSN8;STAI 03;PSI
+Kamis;18.00;19.00;Statistik 1;MBS-03;DSN2;STAI 03;MBS
+Kamis;19.30;20.30;Manajemen Keuangan Syariah;MBS-03;DSN4;STAI 03;MBS
+Kamis;16.30;17.30;Studi Kelayakan Bisnis;MBS-05;DSN2;Meet Lt.1;MBS
+Kamis;18.00;19.00;Bisnis Internasional;MBS-05;DSN4;Meet Lt.1;MBS
+Kamis;19.30;20.30;Etika Bisnis Islam;MBS-07;DSN2;Meet Lt.1;MBS
+Jumat;08.00;09.00;Biopsikologi;PSI-01;DSN17;STAI 02;PSI
+Jumat;09.30;10.30;Psikologi Umum;PSI-01;DSN5;STAI 02;PSI
+Jumat;12.30;13.30;Sejarah dan Aliran Psikologi;PSI-01;DSN7;STAI 02;PSI
+Jumat;08.00;09.00;Psikologi Pendidikan;PSI-03;DSN16;STAI 01;PSI
+Jumat;09.30;10.30;Sejarah Psikologi Islam;PSI-03;DSN17;STAI 01;PSI
+Jumat;12.30;13.30;Tafsir Psikologi;PSI-03;DSN12;STAI 01;PSI
+Jumat;08.00;09.00;Kesehatan Mental;PSI-05;DSN5;STAI 04;PSI
+Jumat;09.30;10.30;Kesidogirian;PSI-05;DSN8;STAI 04;PSI
+Jumat;12.30;13.30;Wawancara;PSI-05;DSN17;STAI 04;PSI
+Jumat;08.00;09.00;Pengantar Bisnis;MBS-01;DSN3;Meet Lt.2;MBS
+Jumat;09.30;10.30;Dasar-Dasar Ekonomi Islam;MBS-01;DSN3;Meet Lt.2;MBS
+Jumat;08.00;09.00;Pengantar Ekonomi Makro Syariah;MBS-03;DSN1;STAI 03;MBS
+Jumat;09.30;10.30;Psikologi Industri;MBS-05;DSN10;Meet Lt.1;PSI

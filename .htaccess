@@ -1,0 +1,46 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Health Check Endpoint (Monitoring)
+    RewriteRule ^up/?$ up.php [L,QSA]
+
+    # Gerbang Portal Masuk Terpadu
+    RewriteRule ^portal/?$ login.php [L,QSA]
+    RewriteRule ^login/?$ login.php [L,QSA]
+
+    # Surface 1: Display Layar TV
+    RewriteRule ^api/v1/display/state/?$ api/v1/display/state.php [L,QSA]
+    RewriteRule ^api/v1/display/qr/?$ api/v1/display/qr.php [L,QSA]
+    RewriteRule ^api/v1/display/heartbeat/?$ api/v1/display/heartbeat.php [L,QSA]
+
+    # Surface 2: Presensi HP Pengurus (Web Views)
+    RewriteRule ^absen/?$ absen/index.php [L,QSA]
+    RewriteRule ^absen/scan/?$ absen/scan.php [L,QSA]
+
+    # Surface 2: Presensi HP Pengurus (API Endpoints)
+    RewriteRule ^api/v1/absen/login/?$ api/v1/absen/login.php [L,QSA]
+    RewriteRule ^api/v1/absen/scan/?$ api/v1/absen/scan.php [L,QSA]
+    RewriteRule ^api/v1/absen/saya/?$ api/v1/absen/saya.php [L,QSA]
+    RewriteRule ^api/v1/absen/logout/?$ api/v1/absen/logout.php [L,QSA]
+
+    # Surface 3: Panel Admin Kampus
+    RewriteRule ^admin/?$ admin/index.php [L,QSA]
+
+    # Surface 4: Portal Dosen Kampus
+    RewriteRule ^dosen/?$ dosen/index.php [L,QSA]
+    RewriteRule ^api/v1/dosen/login/?$ api/v1/dosen/login.php [L,QSA]
+    RewriteRule ^api/v1/dosen/logout/?$ api/v1/dosen/logout.php [L,QSA]
+    RewriteRule ^api/v1/dosen/jadwal/?$ api/v1/dosen/jadwal.php [L,QSA]
+    RewriteRule ^api/v1/dosen/konfirmasi/?$ api/v1/dosen/konfirmasi.php [L,QSA]
+</IfModule>
+
+# Keamanan: Cegah Akses Langsung ke File Konfigurasi Sensitif
+<FilesMatch "^\.(env|git|lock)|composer\.(json|lock)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
