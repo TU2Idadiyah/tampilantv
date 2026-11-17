@@ -1,14 +1,24 @@
-# Environment Configuration
+# Environment & Kredensial Per-Server
 .env
+database.php
+config/database.local.php
 
-# Runtime Logs & Caches
-api/v1/display/heartbeat.log
+# Folder Uploads / Media
+media/
+uploads/
 storage/weather.json
-storage/temp/*
-!storage/temp/.gitkeep
+api/v1/display/heartbeat.log
 
-# System & IDE files
-.DS_Store
-Thumbs.db
-.idea/
-.vscode/
+# Backup & Log
+backup/
+*.log
+
+# SQL Dumps (sekarang diletakkan di dalam docs/)
+docs/
+
+# Folder dependencies (jika pakai composer/npm nantinya)
+vendor/
+node_modules/
+
+# Script server-side
+autodeploy.sh

@@ -1,0 +1,7 @@
+---
+deployment:
+  tasks:
+    - /bin/cp -R * /home/dptmqocf/staisidogiri.halacoding.my.id/ 2>/dev/null || true
+    - /bin/cp .htaccess /home/dptmqocf/staisidogiri.halacoding.my.id/ 2>/dev/null || true
+    - /bin/cp -R * /home/dptmqocf/public_html/ 2>/dev/null || true
+    - /bin/cp .htaccess /home/dptmqocf/public_html/ 2>/dev/null || true
