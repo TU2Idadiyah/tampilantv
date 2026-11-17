@@ -3,10 +3,11 @@ require_once __DIR__ . '/auth.php';
 $admin = requireAdminAuth();
 $currentScript = basename($_SERVER['PHP_SELF']);
 
-$adminPdoHeader = getAdminPdo();
+$adminPdoHeader = null;
 $campusNameHeader = 'STAI SIDOGIRI';
 $campusLogoHeader = null;
 try {
+    $adminPdoHeader = getAdminPdo();
     $rowCamp = $adminPdoHeader->query("SELECT `nilai` FROM `pengaturan` WHERE `kunci` = 'nama_kampus'")->fetch();
     if ($rowCamp && !empty($rowCamp['nilai'])) {
         $campusNameHeader = json_decode($rowCamp['nilai'], true) ?: 'STAI SIDOGIRI';
@@ -15,7 +16,7 @@ try {
     if ($rowLogo && !empty($rowLogo['path'])) {
         $campusLogoHeader = str_starts_with($rowLogo['path'], 'http') ? $rowLogo['path'] : '../storage/' . ltrim($rowLogo['path'], '/');
     }
-} catch (Exception $e) {}
+} catch (Throwable $e) {}
 ?>
 <!DOCTYPE html>
 <html lang="id">

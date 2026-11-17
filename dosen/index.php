@@ -6,7 +6,43 @@
 
 require_once dirname(__DIR__) . '/api/v1/dosen/helper.php';
 
-$pdo = getDosenPdo();
+try {
+    $pdo = getDosenPdo();
+} catch (Throwable $e) {
+    $pdo = null;
+}
+
+if (!$pdo) {
+    ?>
+    <!DOCTYPE html>
+    <html lang="id">
+    <head>
+        <meta charset="utf-8">
+        <title>Koneksi Database Belum Terhubung - STAI Sidogiri</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+        <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f8fafc; color: #1e293b; display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
+            .card { background: #fff; max-width: 480px; width: 100%; padding: 32px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.06); text-align: center; border: 1px solid #e2e8f0; }
+            .icon { width: 64px; height: 64px; background: #fef3c7; color: #d97706; border-radius: 50%; display: grid; place-items: center; font-size: 28px; margin: 0 auto 16px; }
+            h1 { font-size: 20px; font-weight: 800; margin-bottom: 8px; color: #0f172a; }
+            p { font-size: 14px; color: #64748b; line-height: 1.5; margin-bottom: 24px; }
+            .btn { display: inline-block; background: #009B4C; color: #fff; text-decoration: none; padding: 12px 24px; border-radius: 12px; font-weight: 700; font-size: 14px; }
+        </style>
+    </head>
+    <body>
+        <div class="card">
+            <div class="icon"><i class="fa-solid fa-database"></i></div>
+            <h1>Database Belum Terhubung</h1>
+            <p>Portal Dosen memerlukan koneksi basis data. Silakan hubungkan database Anda melalui Pusat Setup Database.</p>
+            <a href="../setup.php" class="btn">Buka Setup Database &rarr;</a>
+        </div>
+    </body>
+    </html>
+    <?php
+    exit;
+}
+
 $dosen = getActiveDosen();
 
 // Ambil info kampus

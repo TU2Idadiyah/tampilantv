@@ -32,12 +32,14 @@ $checks['diagnostik'] = [
 
 $healthy = true;
 
-// 1. Cek Konektivitas Database MySQL
+// 1. Cek Konektivitas Database MySQL / SQLite Fallback
 try {
     $pdo = getDatabasePdo();
+    $driver = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
     $stmt = $pdo->query('SELECT 1');
     if ($stmt && $stmt->fetchColumn() == 1) {
-        $checks['database'] = 'connected';
+        $checks['database'] = "connected ({$driver})";
+        $checks['database_driver'] = $driver;
     } else {
         $healthy = false;
     }

@@ -83,6 +83,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <a href="../login.php" style="font-size:12px;font-weight:700;color:var(--g-dark);text-decoration:none;text-align:center;padding:4px">
                 🚪 Kembali ke Pusat Portal
             </a>
+            <a href="../setup.php" style="font-size:12px;font-weight:600;color:#62756a;text-decoration:none;text-align:center;padding:4px">
+                ⚙️ Setup Database cPanel
+            </a>
             <a href="../index.html" style="font-size:12px;font-weight:600;color:#62756a;text-decoration:none;text-align:center;padding:4px">
                 📺 Pratinjau Layar TV Kampus (Tanpa Login)
             </a>

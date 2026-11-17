@@ -62,7 +62,11 @@ function requireSuperAdmin(): array
 
 function adminLogin(string $email, string $password): array
 {
-    $pdo = getAdminPdo();
+    try {
+        $pdo = getAdminPdo();
+    } catch (Throwable $t) {
+        return ['sukses' => false, 'pesan' => 'Koneksi ke database gagal. Silakan buka halaman <a href="../setup.php" style="color:var(--g-dark);font-weight:700">Setup Database</a> untuk menghubungkan database.'];
+    }
     $stmt = $pdo->prepare("SELECT * FROM `users` WHERE `email` = :email LIMIT 1");
     $stmt->execute(['email' => strtolower(trim($email))]);
     $user = $stmt->fetch();

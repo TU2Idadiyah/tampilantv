@@ -12,7 +12,11 @@ function getDosenPdo(): PDO {
 }
 
 function getActiveDosen(): ?array {
-    $pdo = getDosenPdo();
+    try {
+        $pdo = getDosenPdo();
+    } catch (Throwable $t) {
+        return null;
+    }
     $dosenId = null;
 
     if (!empty($_COOKIE['stai_dosen_id'])) {

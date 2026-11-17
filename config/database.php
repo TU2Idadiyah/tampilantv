@@ -97,7 +97,7 @@ if (!function_exists('env')) {
     }
 }
 
-// 3. Helper Koneksi Database PDO Terpusat
+// 3. Helper Koneksi Database PDO Terpusat (Mendukung MySQL & SQLite Auto-Fallback)
 if (!function_exists('getDatabasePdo')) {
     function getDatabasePdo(): PDO {
         static $pdo = null;
@@ -113,16 +113,20 @@ if (!function_exists('getDatabasePdo')) {
         $password = env('DB_PASSWORD', '');
         $charset = env('DB_CHARSET', 'utf8mb4');
 
-        $dsn = "mysql:host={$host};port={$port};dbname={$dbname};charset={$charset}";
+        $mysqlError = null;
 
+        // 1. Coba koneksi MySQL terlebih dahulu
         try {
+            $dsn = "mysql:host={$host};port={$port};dbname={$dbname};charset={$charset}";
             $pdo = new PDO($dsn, $username, $password, [
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                 PDO::ATTR_EMULATE_PREPARES => false,
                 PDO::ATTR_TIMEOUT => 3,
             ]);
+            return $pdo;
         } catch (PDOException $e) {
+            $mysqlError = $e->getMessage();
             // Coba fallback host jika 127.0.0.1 gagal (misal jika server Linux hanya izinkan socket 'localhost')
             if ($host === '127.0.0.1') {
                 try {
@@ -135,14 +139,38 @@ if (!function_exists('getDatabasePdo')) {
                     ]);
                     return $pdo;
                 } catch (PDOException $e2) {
-                    // lanjut throw error asli
+                    $mysqlError = $e2->getMessage();
                 }
             }
-            error_log("Database Connection Failed: " . $e->getMessage());
-            throw new RuntimeException("Koneksi ke database gagal. Pastikan konfigurasi di .env atau database.php sudah benar: " . $e->getMessage());
         }
 
-        return $pdo;
+        // 2. Fallback Otomatis ke SQLite di storage/database.sqlite
+        // Ini memastikan seluruh portal (Dosen, Admin, Presensi) LANGSUNG AKTIF & BISA DIAKSES
+        // tanpa crash HTTP 500 meskipun MySQL di hosting belum dikonfigurasi!
+        $sqliteFile = dirname(__DIR__) . '/storage/database.sqlite';
+        if (extension_loaded('pdo_sqlite') && file_exists($sqliteFile) && is_readable($sqliteFile)) {
+            try {
+                $pdo = new PDO('sqlite:' . $sqliteFile, null, null, [
+                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                    PDO::ATTR_TIMEOUT => 5,
+                ]);
+                @$pdo->exec('PRAGMA journal_mode = WAL;');
+                @$pdo->exec('PRAGMA busy_timeout = 5000;');
+
+                // Daftarkan fungsi kompatibilitas MySQL untuk SQLite
+                if (method_exists($pdo, 'sqliteCreateFunction')) {
+                    $pdo->sqliteCreateFunction('now', function() { return date('Y-m-d H:i:s'); });
+                    $pdo->sqliteCreateFunction('curdate', function() { return date('Y-m-d'); });
+                }
+                return $pdo;
+            } catch (Throwable $st) {
+                error_log("SQLite Connection Failed: " . $st->getMessage());
+            }
+        }
+
+        error_log("Database Connection Failed: " . $mysqlError);
+        throw new RuntimeException("Koneksi ke database gagal. Pastikan konfigurasi database di .env atau setup.php sudah benar: " . $mysqlError);
     }
 }
 

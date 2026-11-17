@@ -236,7 +236,7 @@ try {
         </div>
 
         <div class="footer-note">
-            Sistem Informasi Layar Kampus STAI Sidogiri v1.0
+            Sistem Informasi Layar Kampus STAI Sidogiri v1.0 &middot; <a href="setup.php" style="color:var(--muted);text-decoration:none"><i class="fa-solid fa-gear"></i> Setup Database</a>
         </div>
     </div>
 </body>
