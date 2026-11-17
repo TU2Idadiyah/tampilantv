@@ -1,0 +1,14 @@
+# Environment Configuration
+.env
+
+# Runtime Logs & Caches
+api/v1/display/heartbeat.log
+storage/weather.json
+storage/temp/*
+!storage/temp/.gitkeep
+
+# System & IDE files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
