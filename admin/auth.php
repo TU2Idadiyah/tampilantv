@@ -67,12 +67,13 @@ function adminLogin(string $email, string $password): array
     } catch (Throwable $t) {
         return ['sukses' => false, 'pesan' => 'Koneksi ke database gagal. Silakan buka halaman <a href="../setup.php" style="color:var(--g-dark);font-weight:700">Setup Database</a> untuk menghubungkan database.'];
     }
-    $stmt = $pdo->prepare("SELECT * FROM `users` WHERE `email` = :email LIMIT 1");
-    $stmt->execute(['email' => strtolower(trim($email))]);
+    $ident = strtolower(trim($email));
+    $stmt = $pdo->prepare("SELECT * FROM `users` WHERE LOWER(`email`) = :ident OR LOWER(`name`) = :ident LIMIT 1");
+    $stmt->execute(['ident' => $ident]);
     $user = $stmt->fetch();
 
     if (!$user || !password_verify($password, $user['password'])) {
-        return ['sukses' => false, 'pesan' => 'Email atau kata sandi tidak cocok.'];
+        return ['sukses' => false, 'pesan' => 'Username/email atau kata sandi tidak cocok.'];
     }
 
     $_SESSION['stai_admin_id'] = $user['id'];

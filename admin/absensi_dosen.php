@@ -226,14 +226,122 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $error = "Gagal menyimpan presensi dosen: " . $e->getMessage();
             }
         }
+    } elseif ($formAction === 'edit_sesi_dosen') {
+        $kid = (int)($_POST['kehadiran_id'] ?? 0);
+        $tgl = trim($_POST['tanggal'] ?? '');
+        $status = trim($_POST['status'] ?? 'hadir');
+        $mode = trim($_POST['mode'] ?? 'offline');
+        $waktuAbsen = trim($_POST['waktu_absen'] ?? '');
+        $jamGanti = trim($_POST['jam_ganti'] ?? '');
+        $keterangan = trim($_POST['keterangan'] ?? '');
+
+        if ($kid <= 0 || empty($tgl)) {
+            $error = 'ID presensi dan tanggal wajib diisi!';
+        } else {
+            if (!empty($waktuAbsen) && strlen($waktuAbsen) === 5) $waktuAbsen .= ':00';
+            $modeVal = $status === 'hadir' ? $mode : null;
+
+            $stmtOrig = $pdo->prepare("SELECT `dosen_id`, `jadwal_id`, `tanggal` FROM `kehadiran_dosen` WHERE `id` = :id LIMIT 1");
+            $stmtOrig->execute(['id' => $kid]);
+            $origRow = $stmtOrig->fetch();
+
+            $stmtUpd = $pdo->prepare(
+                "UPDATE `kehadiran_dosen`
+                 SET `tanggal` = :tgl, `status` = :status, `mode` = :mode, `jam_ganti` = :jam_ganti,
+                     `keterangan` = :ket, `waktu_absen` = :waktu, `metode` = 'manual', `updated_at` = NOW()
+                 WHERE `id` = :id"
+            );
+            $stmtUpd->execute([
+                'tgl' => $tgl,
+                'status' => $status,
+                'mode' => $modeVal,
+                'jam_ganti' => $jamGanti ?: null,
+                'ket' => $keterangan ?: null,
+                'waktu' => $waktuAbsen ?: null,
+                'id' => $kid
+            ]);
+
+            // Sinkronkan juga baris fallback jadwal_id = 0 bila tanggal sama
+            if ($origRow && (int)$origRow['jadwal_id'] > 0 && $origRow['tanggal'] === $tgl) {
+                $pdo->prepare("UPDATE `kehadiran_dosen` SET `status` = :status, `mode` = :mode, `jam_ganti` = :jam_ganti, `keterangan` = :ket, `waktu_absen` = :waktu, `updated_at` = NOW()
+                               WHERE `dosen_id` = :did AND `jadwal_id` = 0 AND `tanggal` = :tgl")
+                    ->execute([
+                        'status' => $status,
+                        'mode' => $modeVal,
+                        'jam_ganti' => $jamGanti ?: null,
+                        'ket' => $keterangan ?: null,
+                        'waktu' => $waktuAbsen ?: null,
+                        'did' => $origRow['dosen_id'],
+                        'tgl' => $tgl
+                    ]);
+            }
+
+            $pdo->prepare("INSERT INTO `audit_log` (`aktor_tipe`, `aktor_id`, `aksi`, `entitas`, `entitas_id`, `meta`, `created_at`)
+                           VALUES ('admin', :uid, 'edit_presensi_dosen', 'kehadiran_dosen', :kid, :meta, NOW())")
+                ->execute(['uid' => $admin['id'], 'kid' => $kid, 'meta' => json_encode(['tanggal' => $tgl, 'status' => $status, 'mode' => $modeVal])]);
+
+            $message = "Data presensi dosen berhasil diperbarui!";
+        }
     } elseif ($formAction === 'hapus_sesi_dosen') {
         $kid = (int)($_POST['kehadiran_id'] ?? 0);
         if ($kid > 0) {
+            $stmtOrig = $pdo->prepare("SELECT `dosen_id`, `jadwal_id`, `tanggal` FROM `kehadiran_dosen` WHERE `id` = :id LIMIT 1");
+            $stmtOrig->execute(['id' => $kid]);
+            $origRow = $stmtOrig->fetch();
+
             $pdo->prepare("DELETE FROM `kehadiran_dosen` WHERE `id` = :id")->execute(['id' => $kid]);
+
+            // Jika baris spesifik jadwal dihapus dan tidak ada jadwal lain di tanggal tsb, bersihkan juga fallback jadwal_id = 0
+            if ($origRow && (int)$origRow['jadwal_id'] > 0) {
+                $stmtRem = $pdo->prepare("SELECT COUNT(*) FROM `kehadiran_dosen` WHERE `dosen_id` = :did AND `tanggal` = :tgl AND `jadwal_id` > 0");
+                $stmtRem->execute(['did' => $origRow['dosen_id'], 'tgl' => $origRow['tanggal']]);
+                if ((int)$stmtRem->fetchColumn() === 0) {
+                    $pdo->prepare("DELETE FROM `kehadiran_dosen` WHERE `dosen_id` = :did AND `tanggal` = :tgl AND `jadwal_id` = 0")
+                        ->execute(['did' => $origRow['dosen_id'], 'tgl' => $origRow['tanggal']]);
+                }
+            }
+
+            $pdo->prepare("INSERT INTO `audit_log` (`aktor_tipe`, `aktor_id`, `aksi`, `entitas`, `entitas_id`, `created_at`)
+                           VALUES ('admin', :uid, 'hapus_presensi_dosen', 'kehadiran_dosen', :kid, NOW())")
+                ->execute(['uid' => $admin['id'], 'kid' => $kid]);
+
             $message = "Sesi presensi dosen berhasil dihapus dari rekap.";
         }
+    } elseif ($formAction === 'hapus_dosen_bulan') {
+        $did = (int)($_POST['dosen_id'] ?? 0);
+        $targetBulan = trim($_POST['bulan'] ?? '');
+        if ($did > 0 && preg_match('/^\d{4}-\d{2}$/', $targetBulan)) {
+            $stmtDel = $pdo->prepare("DELETE FROM `kehadiran_dosen` WHERE `dosen_id` = :did AND `tanggal` LIKE :bln");
+            $stmtDel->execute(['did' => $did, 'bln' => $targetBulan . '%']);
+            $deleted = $stmtDel->rowCount();
+            $pdo->prepare("INSERT INTO `audit_log` (`aktor_tipe`, `aktor_id`, `aksi`, `entitas`, `entitas_id`, `meta`, `created_at`)
+                           VALUES ('admin', :uid, 'hapus_rekap_dosen_bulan', 'kehadiran_dosen', :did, :meta, NOW())")
+                ->execute(['uid' => $admin['id'], 'did' => $did, 'meta' => json_encode(['bulan' => $targetBulan, 'jumlah' => $deleted])]);
+            $message = "Berhasil menghapus {$deleted} data presensi dosen tersebut pada bulan {$targetBulan}.";
+        }
+    } elseif ($formAction === 'hapus_bulan_dosen') {
+        $targetBulan = trim($_POST['bulan'] ?? '');
+        if (preg_match('/^\d{4}-\d{2}$/', $targetBulan)) {
+            $stmtDel = $pdo->prepare("DELETE FROM `kehadiran_dosen` WHERE `tanggal` LIKE :bln");
+            $stmtDel->execute(['bln' => $targetBulan . '%']);
+            $deleted = $stmtDel->rowCount();
+            $pdo->prepare("INSERT INTO `audit_log` (`aktor_tipe`, `aktor_id`, `aksi`, `entitas`, `meta`, `created_at`)
+                           VALUES ('admin', :uid, 'hapus_rekap_dosen_semua_bulan', 'kehadiran_dosen', :meta, NOW())")
+                ->execute(['uid' => $admin['id'], 'meta' => json_encode(['bulan' => $targetBulan, 'jumlah' => $deleted])]);
+            $message = "Berhasil menghapus {$deleted} rekaman presensi dosen pada bulan {$targetBulan}.";
+        }
+    } elseif ($formAction === 'hapus_semua_dosen') {
+        $stmtDel = $pdo->prepare("DELETE FROM `kehadiran_dosen`");
+        $stmtDel->execute();
+        $deleted = $stmtDel->rowCount();
+        $pdo->prepare("INSERT INTO `audit_log` (`aktor_tipe`, `aktor_id`, `aksi`, `entitas`, `meta`, `created_at`)
+                       VALUES ('admin', :uid, 'kosongkan_semua_presensi_dosen', 'kehadiran_dosen', :meta, NOW())")
+            ->execute(['uid' => $admin['id'], 'meta' => json_encode(['jumlah_dihapus' => $deleted])]);
+        $message = "Seluruh data presensi dosen ({$deleted} baris) telah dikosongkan. Rekap kini bersih (0).";
     }
 }
+
+$totalAllKehadiranDosen = (int) $pdo->query("SELECT COUNT(*) FROM `kehadiran_dosen`")->fetchColumn();
 
 // 4. DATA DOSEN UNTUK FILTER
 $allDosenList = $pdo->query("SELECT id, kode_nidn, nama FROM `dosen` WHERE aktif = 1 AND deleted_at IS NULL ORDER BY nama ASC")->fetchAll();
@@ -449,10 +557,23 @@ require_once __DIR__ . '/header.php';
                     Akumulasi data konfirmasi kehadiran yang dikirim dosen lewat portal maupun koreksi admin.
                 </p>
             </div>
-            <div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
                 <a href="?action=export_rekap&bulan=<?= urlencode($selectedMonth) ?>" class="btn" style="background:#16a34a">
-                    📥 Ekspor CSV Rekap Bulanan
+                    📥 Ekspor CSV Rekap
                 </a>
+                <?php if ($kpiTotalSesi > 0): ?>
+                <form method="POST" style="display:inline" onsubmit="return confirm('Hapus seluruh data presensi dosen pada bulan <?= htmlspecialchars($selectedMonth) ?>?')">
+                    <input type="hidden" name="form_action" value="hapus_bulan_dosen">
+                    <input type="hidden" name="bulan" value="<?= htmlspecialchars($selectedMonth) ?>">
+                    <button type="submit" class="btn btn-danger">🗑️ Hapus Data Bulan Ini</button>
+                </form>
+                <?php endif; ?>
+                <?php if ($totalAllKehadiranDosen > 0): ?>
+                <form method="POST" style="display:inline" onsubmit="return confirm('PERHATIAN! Anda akan mengosongkan SELURUH <?= $totalAllKehadiranDosen ?> rekaman presensi dosen dari semua bulan. Lanjutkan?')">
+                    <input type="hidden" name="form_action" value="hapus_semua_dosen">
+                    <button type="submit" class="btn" style="background:#7f1d1d;color:#fff">🧹 Kosongkan Semua Data</button>
+                </form>
+                <?php endif; ?>
             </div>
         </div>
 
@@ -518,9 +639,19 @@ require_once __DIR__ . '/header.php';
                             <?php endif; ?>
                         </td>
                         <td>
-                            <a href="?tab=detail&bulan=<?= urlencode($selectedMonth) ?>&dosen_id=<?= $r['id'] ?>" class="btn btn-secondary" style="padding:4px 8px;font-size:11px" title="Lihat riwayat rincian dosen ini">
-                                🔍 Rincian
-                            </a>
+                            <div style="display:flex;gap:6px;flex-wrap:wrap">
+                                <a href="?tab=detail&bulan=<?= urlencode($selectedMonth) ?>&dosen_id=<?= $r['id'] ?>" class="btn btn-secondary" style="padding:4px 8px;font-size:11px" title="Lihat riwayat rincian dosen ini">
+                                    🔍 Rincian
+                                </a>
+                                <?php if ($totSesi > 0): ?>
+                                <form method="POST" style="display:inline" onsubmit="return confirm('Hapus seluruh data presensi milik <?= addslashes($r['nama']) ?> pada bulan <?= htmlspecialchars($selectedMonth) ?>?')">
+                                    <input type="hidden" name="form_action" value="hapus_dosen_bulan">
+                                    <input type="hidden" name="dosen_id" value="<?= (int)$r['id'] ?>">
+                                    <input type="hidden" name="bulan" value="<?= htmlspecialchars($selectedMonth) ?>">
+                                    <button type="submit" class="btn btn-danger" style="padding:4px 8px;font-size:11px">🗑️ Reset</button>
+                                </form>
+                                <?php endif; ?>
+                            </div>
                         </td>
                     </tr>
                     <?php endforeach; ?>
@@ -536,13 +667,19 @@ require_once __DIR__ . '/header.php';
             <div>
                 <h3>📋 Log Detail Presensi Dosen — Bulan <?= tglIndo($selectedMonth . '-01') ?></h3>
                 <p style="font-size:13px;color:var(--muted)">
-                    Rincian setiap sesi perkuliahan beserta mode (Offline / Online), tautan meeting, jam ganti, dan catatan.
+                    Rincian setiap sesi perkuliahan beserta mode (Offline / Online), tautan meeting, jam ganti, dan catatan. Klik <b>Edit</b> atau <b>Hapus</b> untuk memvalidasi data.
                 </p>
             </div>
-            <div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
                 <a href="?action=export_detail&bulan=<?= urlencode($selectedMonth) ?>" class="btn" style="background:#16a34a">
-                    📥 Ekspor CSV Detail Presensi
+                    📥 Ekspor CSV Detail
                 </a>
+                <?php if ($totalAllKehadiranDosen > 0): ?>
+                <form method="POST" style="display:inline" onsubmit="return confirm('PERHATIAN! Anda akan mengosongkan SELURUH <?= $totalAllKehadiranDosen ?> rekaman presensi dosen dari semua bulan. Lanjutkan?')">
+                    <input type="hidden" name="form_action" value="hapus_semua_dosen">
+                    <button type="submit" class="btn" style="background:#7f1d1d;color:#fff">🧹 Kosongkan Semua (<?= $totalAllKehadiranDosen ?>)</button>
+                </form>
+                <?php endif; ?>
             </div>
         </div>
 
@@ -623,13 +760,27 @@ require_once __DIR__ . '/header.php';
                             </span>
                         </td>
                         <td>
-                            <form method="POST" style="display:inline" onsubmit="return confirm('Hapus baris rekaman presensi dosen ini?')">
-                                <input type="hidden" name="form_action" value="hapus_sesi_dosen">
-                                <input type="hidden" name="kehadiran_id" value="<?= $d['id'] ?>">
-                                <button type="submit" class="btn btn-danger" style="padding:4px 8px;font-size:11px">
-                                    🗑️ Hapus
+                            <div style="display:flex;gap:6px;flex-wrap:wrap">
+                                <button type="button" class="btn btn-secondary" style="padding:4px 8px;font-size:11px" onclick='openEditDosenModal(<?= json_encode([
+                                    "id" => (int)$d["id"],
+                                    "dosen_nama" => $d["dosen_nama"],
+                                    "tanggal" => $d["tanggal"],
+                                    "status" => $d["status"],
+                                    "mode" => $d["mode"] ?: "offline",
+                                    "waktu_absen" => $d["waktu_absen"] ? substr($d["waktu_absen"], 0, 5) : "",
+                                    "jam_ganti" => $d["jam_ganti"] ?? "",
+                                    "keterangan" => $d["keterangan"] ?? ""
+                                ], JSON_HEX_APOS | JSON_HEX_QUOT) ?>)'>
+                                    ✏️ Edit
                                 </button>
-                            </form>
+                                <form method="POST" style="display:inline" onsubmit="return confirm('Hapus baris rekaman presensi dosen ini?')">
+                                    <input type="hidden" name="form_action" value="hapus_sesi_dosen">
+                                    <input type="hidden" name="kehadiran_id" value="<?= $d['id'] ?>">
+                                    <button type="submit" class="btn btn-danger" style="padding:4px 8px;font-size:11px">
+                                        🗑️ Hapus
+                                    </button>
+                                </form>
+                            </div>
                         </td>
                     </tr>
                     <?php endforeach; ?>
@@ -756,5 +907,86 @@ require_once __DIR__ . '/header.php';
     }
     </script>
 <?php endif; ?>
+
+<!-- MODAL EDIT PRESENSI DOSEN -->
+<div id="modalEditDosen" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:999;align-items:center;justify-content:center;padding:16px">
+    <div style="background:#fff;border-radius:20px;padding:26px;width:100%;max-width:520px;box-shadow:0 10px 40px rgba(0,0,0,0.2)">
+        <h3 style="margin-bottom:6px">✏️ Edit Presensi Dosen</h3>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:18px">Dosen: <b id="editDosenNama" style="color:var(--ink)">-</b></p>
+
+        <form method="POST">
+            <input type="hidden" name="form_action" value="edit_sesi_dosen">
+            <input type="hidden" name="kehadiran_id" id="editDosenKid">
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+                <div>
+                    <label style="font-size:13px;font-weight:700;display:block;margin-bottom:4px">Tanggal</label>
+                    <input type="date" name="tanggal" id="editDosenTgl" required style="width:100%;padding:10px;border:1px solid var(--line);border-radius:10px;font-size:14px">
+                </div>
+                <div>
+                    <label style="font-size:13px;font-weight:700;display:block;margin-bottom:4px">Jam Konfirmasi (WIB)</label>
+                    <input type="time" name="waktu_absen" id="editDosenWaktu" style="width:100%;padding:10px;border:1px solid var(--line);border-radius:10px;font-size:14px">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Status Kehadiran</label>
+                <select name="status" id="editDosenStatus" onchange="toggleEditDosenMode(this.value)">
+                    <option value="hadir">Hadir (Sesuai Jadwal)</option>
+                    <option value="tukar_jam">Tukar Jam (Reschedule)</option>
+                    <option value="tidak_hadir">Tidak Hadir (Izin/Sakit)</option>
+                </select>
+            </div>
+
+            <div class="form-group" id="editDosenModeGroup">
+                <label>Mode Perkuliahan</label>
+                <select name="mode" id="editDosenMode">
+                    <option value="offline">🏫 Hadir Offline (Tatap Muka)</option>
+                    <option value="online">🌐 Hadir Online (Daring)</option>
+                </select>
+            </div>
+
+            <div class="form-group" id="editDosenJamGantiGroup" style="display:none">
+                <label>Waktu / Jam Pengganti</label>
+                <input type="text" name="jam_ganti" id="editDosenJamGanti" placeholder="Contoh: Kamis 13.00 WIB">
+            </div>
+
+            <div class="form-group">
+                <label>Catatan / Keterangan</label>
+                <input type="text" name="keterangan" id="editDosenKet" placeholder="Opsional: Link Zoom atau Alasan">
+            </div>
+
+            <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:18px">
+                <button type="button" class="btn btn-secondary" onclick="closeEditDosenModal()">Batal</button>
+                <button type="submit" class="btn">💾 Simpan Perubahan</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function toggleEditDosenMode(val) {
+    document.getElementById('editDosenModeGroup').style.display = (val === 'hadir') ? 'block' : 'none';
+    document.getElementById('editDosenJamGantiGroup').style.display = (val === 'tukar_jam') ? 'block' : 'none';
+}
+
+function openEditDosenModal(data) {
+    document.getElementById('editDosenKid').value = data.id;
+    document.getElementById('editDosenNama').textContent = data.dosen_nama;
+    document.getElementById('editDosenTgl').value = data.tanggal;
+    document.getElementById('editDosenWaktu').value = data.waktu_absen || '';
+    const st = (data.status === 'hadir' || data.status === 'tukar_jam') ? data.status : 'tidak_hadir';
+    document.getElementById('editDosenStatus').value = st;
+    document.getElementById('editDosenMode').value = data.mode || 'offline';
+    document.getElementById('editDosenJamGanti').value = data.jam_ganti || '';
+    document.getElementById('editDosenKet').value = data.keterangan || '';
+    toggleEditDosenMode(st);
+    document.getElementById('modalEditDosen').style.display = 'flex';
+}
+
+function closeEditDosenModal() {
+    document.getElementById('modalEditDosen').style.display = 'none';
+}
+</script>
 
 <?php require_once __DIR__ . '/footer.php'; ?>

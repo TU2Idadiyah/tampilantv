@@ -126,7 +126,8 @@ try {
             <a href="media.php" class="<?= $currentScript === 'media.php' ? 'active' : '' ?>">🎬 Video Profil & Media</a>
             <a href="pengaturan.php" class="<?= $currentScript === 'pengaturan.php' ? 'active' : '' ?>">⚙️ Pengaturan & Logo</a>
 
-            <div class="nav-label">Monitoring</div>
+            <div class="nav-label">Keamanan &amp; Monitoring</div>
+            <a href="users.php" class="<?= $currentScript === 'users.php' ? 'active' : '' ?>">🔐 User &amp; Password Role</a>
             <a href="audit.php" class="<?= $currentScript === 'audit.php' ? 'active' : '' ?>">🛡️ Status Layar & Audit</a>
         </nav>
 
@@ -155,6 +156,7 @@ try {
                         'pengumuman.php' => 'Pengaturan Teks Berjalan (Ticker Bawah)',
                         'media.php' => 'Video Profil Kampus & Media',
                         'pengaturan.php' => 'Pengaturan Display & Layar Kampus',
+                        'users.php' => 'Manajemen User, Password & Role',
                         'audit.php' => 'Audit Trail & Status Konektivitas TV',
                         default => 'Panel Administrasi'
                     };

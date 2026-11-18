@@ -205,12 +205,106 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $message = "Pengurus berhasil ditandai PULANG pada pukul " . substr($wPulang, 0, 5) . " WIB (Durasi: " . fmtDuration($durasiMenit) . ").";
         }
 
+    } elseif ($action === 'edit_sesi') {
+        $absensiId = (int)($_POST['absensi_id'] ?? 0);
+        $pId = (int)($_POST['pengurus_id'] ?? 0);
+        $tgl = trim($_POST['tanggal'] ?? '');
+        $wMasuk = trim($_POST['waktu_masuk'] ?? '');
+        $wPulang = trim($_POST['waktu_pulang'] ?? '');
+        $catatan = trim($_POST['catatan'] ?? '');
+
+        if ($absensiId <= 0 || $pId <= 0 || empty($tgl) || empty($wMasuk)) {
+            $error = 'ID sesi, pengurus, tanggal, dan jam masuk wajib diisi!';
+        } else {
+            if (strlen($wMasuk) === 5) $wMasuk .= ':00';
+            if (!empty($wPulang) && strlen($wPulang) === 5) $wPulang .= ':00';
+
+            $status = 'masuk';
+            $durasiMenit = null;
+            $metodePulang = null;
+
+            if (!empty($wPulang)) {
+                $status = 'pulang';
+                $masukTs = strtotime($tgl . ' ' . $wMasuk);
+                $pulangTs = strtotime($tgl . ' ' . $wPulang);
+                $durasiMenit = max(1, (int) round(($pulangTs - $masukTs) / 60));
+                $metodePulang = 'manual';
+            }
+
+            $stmtUpd = $pdo->prepare(
+                "UPDATE `absensi_pengurus`
+                 SET `pengurus_id` = :pid, `tanggal` = :tgl, `waktu_absen` = :wmasuk, `waktu_masuk` = :wmasuk,
+                     `waktu_pulang` = :wpulang, `status` = :status, `durasi_menit` = :durasi,
+                     `metode_pulang` = :mpulang, `catatan` = :catatan, `updated_at` = NOW()
+                 WHERE `id` = :id"
+            );
+            $stmtUpd->execute([
+                'pid' => $pId,
+                'tgl' => $tgl,
+                'wmasuk' => $wMasuk,
+                'wpulang' => !empty($wPulang) ? $wPulang : null,
+                'status' => $status,
+                'durasi' => $durasiMenit,
+                'mpulang' => $metodePulang,
+                'catatan' => $catatan,
+                'id' => $absensiId
+            ]);
+
+            $pdo->prepare("INSERT INTO `audit_log` (`aktor_tipe`, `aktor_id`, `aksi`, `entitas`, `entitas_id`, `meta`, `ip_address`, `created_at`)
+                           VALUES ('admin', :uid, 'edit_sesi', 'absensi_pengurus', :aid, :meta, :ip, NOW())")
+                ->execute([
+                    'uid' => $admin['id'],
+                    'aid' => $absensiId,
+                    'meta' => json_encode(['pengurus_id' => $pId, 'tanggal' => $tgl, 'masuk' => $wMasuk, 'pulang' => $wPulang, 'catatan' => $catatan]),
+                    'ip' => $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1'
+                ]);
+
+            $message = 'Data sesi presensi pengurus berhasil diperbarui.';
+        }
+
     } elseif ($action === 'batalkan_sesi') {
         $absensiId = (int)($_POST['absensi_id'] ?? 0);
         if ($absensiId > 0) {
             $pdo->prepare("DELETE FROM `absensi_pengurus` WHERE `id` = :id")->execute(['id' => $absensiId]);
+            $pdo->prepare("INSERT INTO `audit_log` (`aktor_tipe`, `aktor_id`, `aksi`, `entitas`, `entitas_id`, `ip_address`, `created_at`)
+                           VALUES ('admin', :uid, 'hapus_sesi', 'absensi_pengurus', :aid, :ip, NOW())")
+                ->execute(['uid' => $admin['id'], 'aid' => $absensiId, 'ip' => $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1']);
             $message = 'Sesi presensi telah dihapus/dibatalkan.';
         }
+
+    } elseif ($action === 'hapus_pengurus_bulan') {
+        $pId = (int)($_POST['pengurus_id'] ?? 0);
+        $targetBulan = trim($_POST['bulan'] ?? '');
+        if ($pId > 0 && preg_match('/^\d{4}-\d{2}$/', $targetBulan)) {
+            $stmtDel = $pdo->prepare("DELETE FROM `absensi_pengurus` WHERE `pengurus_id` = :pid AND `tanggal` LIKE :bln");
+            $stmtDel->execute(['pid' => $pId, 'bln' => $targetBulan . '%']);
+            $deleted = $stmtDel->rowCount();
+            $pdo->prepare("INSERT INTO `audit_log` (`aktor_tipe`, `aktor_id`, `aksi`, `entitas`, `entitas_id`, `meta`, `ip_address`, `created_at`)
+                           VALUES ('admin', :uid, 'hapus_rekap_pengurus_bulan', 'absensi_pengurus', :pid, :meta, :ip, NOW())")
+                ->execute(['uid' => $admin['id'], 'pid' => $pId, 'meta' => json_encode(['bulan' => $targetBulan, 'jumlah' => $deleted]), 'ip' => $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1']);
+            $message = "Berhasil menghapus {$deleted} sesi presensi pengurus pada bulan {$targetBulan}.";
+        }
+
+    } elseif ($action === 'hapus_bulan_pengurus') {
+        $targetBulan = trim($_POST['bulan'] ?? '');
+        if (preg_match('/^\d{4}-\d{2}$/', $targetBulan)) {
+            $stmtDel = $pdo->prepare("DELETE FROM `absensi_pengurus` WHERE `tanggal` LIKE :bln");
+            $stmtDel->execute(['bln' => $targetBulan . '%']);
+            $deleted = $stmtDel->rowCount();
+            $pdo->prepare("INSERT INTO `audit_log` (`aktor_tipe`, `aktor_id`, `aksi`, `entitas`, `meta`, `ip_address`, `created_at`)
+                           VALUES ('admin', :uid, 'hapus_rekap_bulan', 'absensi_pengurus', :meta, :ip, NOW())")
+                ->execute(['uid' => $admin['id'], 'meta' => json_encode(['bulan' => $targetBulan, 'jumlah' => $deleted]), 'ip' => $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1']);
+            $message = "Berhasil mengosongkan {$deleted} data presensi pengurus pada bulan {$targetBulan}.";
+        }
+
+    } elseif ($action === 'hapus_semua_pengurus') {
+        $stmtDel = $pdo->prepare("DELETE FROM `absensi_pengurus`");
+        $stmtDel->execute();
+        $deleted = $stmtDel->rowCount();
+        $pdo->prepare("INSERT INTO `audit_log` (`aktor_tipe`, `aktor_id`, `aksi`, `entitas`, `meta`, `ip_address`, `created_at`)
+                       VALUES ('admin', :uid, 'kosongkan_semua_absensi_pengurus', 'absensi_pengurus', :meta, :ip, NOW())")
+            ->execute(['uid' => $admin['id'], 'meta' => json_encode(['jumlah_dihapus' => $deleted]), 'ip' => $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1']);
+        $message = "Seluruh data presensi pengurus ({$deleted} baris) telah berhasil dikosongkan. Rekap kini bersih (0).";
     }
 }
 
@@ -298,6 +392,31 @@ foreach ($rekapPengurus as $rp) {
     $rekapTotalSesiBulan += (int)$rp['total_sesi'];
     $rekapTotalHariHadir += (int)$rp['hari_hadir'];
 }
+
+// DATA TAB 3: KELOLA SELURUH LOG SESI (EDIT & HAPUS)
+$kelolaFilterBulan = $_GET['kelola_bulan'] ?? 'all';
+$kelolaWhere = [];
+$kelolaParams = [];
+if ($kelolaFilterBulan !== 'all' && preg_match('/^\d{4}-\d{2}$/', $kelolaFilterBulan)) {
+    $kelolaWhere[] = "a.tanggal LIKE :kbln";
+    $kelolaParams['kbln'] = $kelolaFilterBulan . '%';
+}
+if ($filterPengurus > 0) {
+    $kelolaWhere[] = "a.pengurus_id = :kpid";
+    $kelolaParams['kpid'] = $filterPengurus;
+}
+$kelolaWhereSql = !empty($kelolaWhere) ? "WHERE " . implode(" AND ", $kelolaWhere) : "";
+$sqlKelola = "SELECT a.*, p.nama AS pengurus_nama, p.jabatan AS pengurus_jabatan, p.nip AS pengurus_nip
+              FROM `absensi_pengurus` a
+              JOIN `pengurus` p ON p.id = a.pengurus_id
+              {$kelolaWhereSql}
+              ORDER BY a.tanggal DESC, a.id DESC
+              LIMIT 500";
+$stmtKelola = $pdo->prepare($sqlKelola);
+$stmtKelola->execute($kelolaParams);
+$kelolaLogs = $stmtKelola->fetchAll();
+
+$totalAllAbsensi = (int) $pdo->query("SELECT COUNT(*) FROM `absensi_pengurus`")->fetchColumn();
 ?>
 
 <style>
@@ -386,12 +505,15 @@ foreach ($rekapPengurus as $rp) {
 </div>
 
 <!-- Navigasi Tab -->
-<div class="nav-tabs-container">
+<div class="nav-tabs-container" style="flex-wrap:wrap">
     <a href="?tab=harian&tanggal=<?= htmlspecialchars($selectedDate) ?>" class="tab-btn <?= $activeTab === 'harian' ? 'active' : '' ?>">
         <span>📋 Riwayat Harian & Sesi</span>
     </a>
     <a href="?tab=rekapitulasi&bulan=<?= htmlspecialchars($selectedMonth) ?>" class="tab-btn <?= $activeTab === 'rekapitulasi' ? 'active' : '' ?>">
         <span>📊 Rekapitulasi & Total Durasi</span>
+    </a>
+    <a href="?tab=kelola" class="tab-btn <?= $activeTab === 'kelola' ? 'active' : '' ?>">
+        <span>🗂️ Kelola Semua Log (Edit &amp; Hapus) <small style="opacity:.85">(<?= $totalAllAbsensi ?>)</small></span>
     </a>
 </div>
 
@@ -505,10 +627,18 @@ foreach ($rekapPengurus as $rp) {
                                     <?php if ($s['catatan']): ?>
                                         <span title="<?= htmlspecialchars($s['catatan']) ?>" style="cursor:help">📝</span>
                                     <?php endif; ?>
+                                    <button type="button" onclick='openEditSesiModal(<?= json_encode([
+                                        "id" => (int)$s["id"],
+                                        "pengurus_id" => (int)$s["pengurus_id"],
+                                        "tanggal" => $s["tanggal"],
+                                        "waktu_masuk" => substr($s["waktu_masuk"] ?: "", 0, 5),
+                                        "waktu_pulang" => $s["waktu_pulang"] ? substr($s["waktu_pulang"], 0, 5) : "",
+                                        "catatan" => $s["catatan"] ?? ""
+                                    ], JSON_HEX_APOS | JSON_HEX_QUOT) ?>)' style="background:none;border:none;color:#0284c7;cursor:pointer;font-size:11px;padding:0;margin-left:4px" title="Edit sesi ini">✏️</button>
                                     <form method="POST" style="display:inline;margin-left:4px" onsubmit="return confirm('Hapus sesi ke-<?= $s['sesi_ke'] ?> ini?')">
                                         <input type="hidden" name="action" value="batalkan_sesi">
                                         <input type="hidden" name="absensi_id" value="<?= $s['id'] ?>">
-                                        <button type="submit" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:11px;padding:0" title="Hapus sesi ini">&times;</button>
+                                        <button type="submit" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:12px;font-weight:800;padding:0" title="Hapus sesi ini">&times;</button>
                                     </form>
                                 </div>
                             <?php endforeach; ?>
@@ -542,7 +672,7 @@ foreach ($rekapPengurus as $rp) {
         </table>
     </div>
 
-<?php else: ?>
+<?php elseif ($activeTab === 'rekapitulasi'): ?>
     <!-- ============================================== -->
     <!-- TAB 2: REKAPITULASI PRESENSI & TOTAL DURASI    -->
     <!-- ============================================== -->
@@ -582,20 +712,33 @@ foreach ($rekapPengurus as $rp) {
             <button type="submit" class="btn" style="margin-top:18px">Tampilkan Rekap</button>
         </form>
 
-        <div style="display:flex;gap:10px">
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
             <a href="?action=export_rekap&bulan=<?= htmlspecialchars($selectedMonth) ?>" class="btn">
-                📥 Ekspor Rekap Bulanan (CSV)
+                📥 Ekspor Rekap (CSV)
             </a>
             <a href="?action=export_detail&bulan=<?= htmlspecialchars($selectedMonth) ?>" class="btn btn-secondary">
-                📥 Ekspor Detail Log Sesi (CSV)
+                📥 Ekspor Detail (CSV)
             </a>
+            <?php if ($rekapTotalSesiBulan > 0): ?>
+            <form method="POST" style="display:inline" onsubmit="return confirm('Hapus seluruh <?= $rekapTotalSesiBulan ?> data sesi presensi pengurus pada bulan <?= htmlspecialchars($selectedMonth) ?>? Tindakan ini tidak dapat dibatalkan!')">
+                <input type="hidden" name="action" value="hapus_bulan_pengurus">
+                <input type="hidden" name="bulan" value="<?= htmlspecialchars($selectedMonth) ?>">
+                <button type="submit" class="btn btn-danger">🗑️ Hapus Data Bulan Ini</button>
+            </form>
+            <?php endif; ?>
+            <?php if ($totalAllAbsensi > 0): ?>
+            <form method="POST" style="display:inline" onsubmit="return confirm('PERHATIAN! Anda akan mengosongkan SELURUH <?= $totalAllAbsensi ?> data presensi pengurus dari semua bulan (cocok untuk membersihkan data uji coba sebelum mulai). Lanjutkan?')">
+                <input type="hidden" name="action" value="hapus_semua_pengurus">
+                <button type="submit" class="btn" style="background:#7f1d1d;color:#fff">🧹 Kosongkan Semua Data</button>
+            </form>
+            <?php endif; ?>
         </div>
     </div>
 
     <!-- Tabel Rekapitulasi Bulanan -->
     <div class="card">
         <h3>📊 Rekapitulasi Presensi & Akumulasi Durasi Kerja Bulan: <?= date('F Y', strtotime($selectedMonth . '-01')) ?></h3>
-        <p style="font-size:13px;color:var(--muted);margin-bottom:16px">Tabel di bawah merangkum total hari kehadiran, total sesi, akumulasi jam kerja, dan rata-rata durasi kerja per hari bagi setiap pengurus.</p>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:16px">Tabel di bawah merangkum total hari kehadiran, total sesi, akumulasi jam kerja, dan rata-rata durasi kerja per hari bagi setiap pengurus. Klik <b>Rincian</b> untuk mengedit atau menghapus per sesi.</p>
 
         <table>
             <thead>
@@ -607,6 +750,7 @@ foreach ($rekapPengurus as $rp) {
                     <th>Total Sesi</th>
                     <th>Total Akumulasi Durasi</th>
                     <th>Rata-rata Durasi / Hari</th>
+                    <th>Aksi</th>
                 </tr>
             </thead>
             <tbody>
@@ -635,8 +779,145 @@ foreach ($rekapPengurus as $rp) {
                     <td>
                         <b><?= fmtDuration($rataMenit) ?></b> / hari
                     </td>
+                    <td>
+                        <div style="display:flex;gap:6px;flex-wrap:wrap">
+                            <a href="?tab=kelola&kelola_bulan=<?= urlencode($selectedMonth) ?>&pengurus_id=<?= $r['id'] ?>" class="btn btn-secondary" style="padding:4px 8px;font-size:11px">
+                                🔍 Rincian
+                            </a>
+                            <?php if ((int)$r['total_sesi'] > 0): ?>
+                            <form method="POST" style="display:inline" onsubmit="return confirm('Hapus seluruh <?= (int)$r['total_sesi'] ?> sesi presensi milik <?= addslashes($r['nama']) ?> pada bulan <?= htmlspecialchars($selectedMonth) ?>?')">
+                                <input type="hidden" name="action" value="hapus_pengurus_bulan">
+                                <input type="hidden" name="pengurus_id" value="<?= $r['id'] ?>">
+                                <input type="hidden" name="bulan" value="<?= htmlspecialchars($selectedMonth) ?>">
+                                <button type="submit" class="btn btn-danger" style="padding:4px 8px;font-size:11px">🗑️ Reset</button>
+                            </form>
+                            <?php endif; ?>
+                        </div>
+                    </td>
                 </tr>
                 <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
+
+<?php else: ?>
+    <!-- ====================================================== -->
+    <!-- TAB 3: KELOLA SELURUH LOG SESI (EDIT & HAPUS LANGSUNG) -->
+    <!-- ====================================================== -->
+
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:14px">
+        <form method="GET" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <input type="hidden" name="tab" value="kelola">
+            <div>
+                <label style="font-size:12px;font-weight:700;display:block;margin-bottom:3px">Periode Bulan:</label>
+                <select name="kelola_bulan" style="padding:8px 12px;border:1px solid var(--line);border-radius:8px;font-size:14px">
+                    <option value="all" <?= $kelolaFilterBulan === 'all' ? 'selected' : '' ?>>-- Semua Bulan (Seluruh Data) --</option>
+                    <?php
+                    $availMonths = $pdo->query("SELECT DISTINCT substr(`tanggal`, 1, 7) AS bln FROM `absensi_pengurus` ORDER BY bln DESC")->fetchAll(PDO::FETCH_COLUMN);
+                    if (!in_array(date('Y-m'), $availMonths, true)) {
+                        array_unshift($availMonths, date('Y-m'));
+                    }
+                    foreach ($availMonths as $bm):
+                        if (!$bm) continue;
+                    ?>
+                        <option value="<?= htmlspecialchars($bm) ?>" <?= $kelolaFilterBulan === $bm ? 'selected' : '' ?>>
+                            <?= date('F Y', strtotime($bm . '-01')) ?> (<?= htmlspecialchars($bm) ?>)
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div>
+                <label style="font-size:12px;font-weight:700;display:block;margin-bottom:3px">Filter Pengurus:</label>
+                <select name="pengurus_id" style="padding:8px 12px;border:1px solid var(--line);border-radius:8px;font-size:14px">
+                    <option value="0">-- Semua Pengurus --</option>
+                    <?php foreach ($allPengurus as $ap): ?>
+                        <option value="<?= $ap['id'] ?>" <?= $filterPengurus === (int)$ap['id'] ? 'selected' : '' ?>>
+                            <?= htmlspecialchars($ap['nama']) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <button type="submit" class="btn" style="margin-top:18px">Filter</button>
+        </form>
+
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button type="button" class="btn" onclick="openTambahSesiModal()">+ Tambah Sesi Manual</button>
+            <?php if ($totalAllAbsensi > 0): ?>
+            <form method="POST" style="display:inline" onsubmit="return confirm('PERHATIAN! Anda akan mengosongkan SELURUH <?= $totalAllAbsensi ?> data absensi pengurus dari semua tanggal/bulan. Lanjutkan?')">
+                <input type="hidden" name="action" value="hapus_semua_pengurus">
+                <button type="submit" class="btn btn-danger">🧹 Kosongkan Semua Data (<?= $totalAllAbsensi ?>)</button>
+            </form>
+            <?php endif; ?>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3>🗂️ Daftar Seluruh Log Absensi Pengurus (<?= count($kelolaLogs) ?> baris ditampilkan)</h3>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:16px">Anda dapat mengedit jam masuk/pulang/tanggal/catatan atau menghapus rekaman absensi satu per satu agar data rekap benar-benar valid.</p>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Tanggal</th>
+                    <th>Pengurus &amp; Jabatan</th>
+                    <th>Sesi</th>
+                    <th>Jam Masuk &rarr; Pulang</th>
+                    <th>Status &amp; Durasi</th>
+                    <th>Catatan</th>
+                    <th>Aksi</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if (empty($kelolaLogs)): ?>
+                    <tr>
+                        <td colspan="7" style="text-align:center;padding:32px;color:var(--muted)">
+                            ✨ Tidak ada data presensi pengurus. Rekap bersih dan siap digunakan!
+                        </td>
+                    </tr>
+                <?php else: ?>
+                    <?php foreach ($kelolaLogs as $row): ?>
+                    <tr>
+                        <td><b><?= date('d M Y', strtotime($row['tanggal'])) ?></b></td>
+                        <td>
+                            <b><?= htmlspecialchars($row['pengurus_nama']) ?></b><br>
+                            <small style="color:var(--muted)"><?= htmlspecialchars($row['pengurus_jabatan']) ?></small>
+                        </td>
+                        <td><span class="badge" style="background:#f1f5f9;color:var(--ink)">Sesi <?= (int)$row['sesi_ke'] ?></span></td>
+                        <td>
+                            <b><?= substr($row['waktu_masuk'] ?: '—', 0, 5) ?></b> &rarr;
+                            <b><?= $row['waktu_pulang'] ? substr($row['waktu_pulang'], 0, 5) : '—' ?></b>
+                        </td>
+                        <td>
+                            <?php if ($row['status'] === 'pulang'): ?>
+                                <span class="badge-status pulang">🚪 Pulang</span>
+                                <small style="display:block;color:var(--muted);margin-top:3px"><?= fmtDuration((int)$row['durasi_menit']) ?></small>
+                            <?php else: ?>
+                                <span class="badge-status masuk">✓ Masuk</span>
+                            <?php endif; ?>
+                        </td>
+                        <td style="font-size:12.5px;color:var(--muted)"><?= htmlspecialchars($row['catatan'] ?: '—') ?></td>
+                        <td>
+                            <div style="display:flex;gap:6px;flex-wrap:wrap">
+                                <button type="button" class="btn btn-secondary" style="padding:4px 10px;font-size:11px" onclick='openEditSesiModal(<?= json_encode([
+                                    "id" => (int)$row["id"],
+                                    "pengurus_id" => (int)$row["pengurus_id"],
+                                    "tanggal" => $row["tanggal"],
+                                    "waktu_masuk" => substr($row["waktu_masuk"] ?: "", 0, 5),
+                                    "waktu_pulang" => $row["waktu_pulang"] ? substr($row["waktu_pulang"], 0, 5) : "",
+                                    "catatan" => $row["catatan"] ?? ""
+                                ], JSON_HEX_APOS | JSON_HEX_QUOT) ?>)'>
+                                    ✏️ Edit
+                                </button>
+                                <form method="POST" style="display:inline" onsubmit="return confirm('Hapus rekaman absensi <?= addslashes($row['pengurus_nama']) ?> tanggal <?= htmlspecialchars($row['tanggal']) ?>?')">
+                                    <input type="hidden" name="action" value="batalkan_sesi">
+                                    <input type="hidden" name="absensi_id" value="<?= (int)$row['id'] ?>">
+                                    <button type="submit" class="btn btn-danger" style="padding:4px 10px;font-size:11px">🗑️ Hapus</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                <?php endif; ?>
             </tbody>
         </table>
     </div>
@@ -707,6 +988,49 @@ foreach ($rekapPengurus as $rp) {
     </div>
 </div>
 
+<!-- MODAL EDIT SESI PRESENSI -->
+<div id="modalEditSesi" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:999;align-items:center;justify-content:center;padding:16px">
+    <div style="background:#fff;border-radius:20px;padding:26px;width:100%;max-width:520px;box-shadow:0 10px 40px rgba(0,0,0,0.2)">
+        <h3 style="margin-bottom:8px">✏️ Edit Data Sesi Presensi Pengurus</h3>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:18px">Ubah tanggal, jam masuk, jam pulang, atau catatan sesi presensi. Durasi kerja akan otomatis dihitung ulang.</p>
+
+        <form method="POST">
+            <input type="hidden" name="action" value="edit_sesi">
+            <input type="hidden" name="absensi_id" id="editAbsensiId">
+            <div class="form-group" style="margin-bottom:14px">
+                <label style="font-size:13px;font-weight:700">Pengurus</label>
+                <select name="pengurus_id" id="editPengurusId" required style="width:100%;padding:10px;border:1px solid var(--line);border-radius:10px;font-size:14px">
+                    <?php foreach ($allPengurus as $ap): ?>
+                        <option value="<?= $ap['id'] ?>"><?= htmlspecialchars($ap['nama']) ?> (<?= htmlspecialchars($ap['jabatan']) ?>)</option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div class="form-group" style="margin-bottom:14px">
+                <label style="font-size:13px;font-weight:700">Tanggal</label>
+                <input type="date" name="tanggal" id="editTanggal" required style="width:100%;padding:10px;border:1px solid var(--line);border-radius:10px;font-size:14px">
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+                <div>
+                    <label style="font-size:13px;font-weight:700">Jam Masuk (WIB)</label>
+                    <input type="time" name="waktu_masuk" id="editWaktuMasuk" required style="width:100%;padding:10px;border:1px solid var(--line);border-radius:10px;font-size:14px">
+                </div>
+                <div>
+                    <label style="font-size:13px;font-weight:700">Jam Pulang (Kosongkan jika masih masuk)</label>
+                    <input type="time" name="waktu_pulang" id="editWaktuPulang" style="width:100%;padding:10px;border:1px solid var(--line);border-radius:10px;font-size:14px">
+                </div>
+            </div>
+            <div class="form-group" style="margin-bottom:18px">
+                <label style="font-size:13px;font-weight:700">Catatan Koreksi</label>
+                <textarea name="catatan" id="editCatatan" rows="2" placeholder="Opsional" style="width:100%;padding:10px;border:1px solid var(--line);border-radius:10px;font-size:14px"></textarea>
+            </div>
+            <div style="display:flex;gap:10px;justify-content:flex-end">
+                <button type="button" class="btn btn-secondary" onclick="closeEditSesiModal()">Batal</button>
+                <button type="submit" class="btn">💾 Simpan Perubahan</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
 function openTambahSesiModal(pId, pName) {
     const modal = document.getElementById('modalTambahSesi');
@@ -729,6 +1053,20 @@ function openPulangkanModal(absensiId, pName, jamMasuk) {
 
 function closePulangkanModal() {
     document.getElementById('modalPulang').style.display = 'none';
+}
+
+function openEditSesiModal(data) {
+    document.getElementById('editAbsensiId').value = data.id;
+    document.getElementById('editPengurusId').value = data.pengurus_id;
+    document.getElementById('editTanggal').value = data.tanggal;
+    document.getElementById('editWaktuMasuk').value = data.waktu_masuk;
+    document.getElementById('editWaktuPulang').value = data.waktu_pulang || '';
+    document.getElementById('editCatatan').value = data.catatan || '';
+    document.getElementById('modalEditSesi').style.display = 'flex';
+}
+
+function closeEditSesiModal() {
+    document.getElementById('modalEditSesi').style.display = 'none';
 }
 </script>
 

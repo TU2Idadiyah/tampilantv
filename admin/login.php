@@ -51,29 +51,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <form method="POST" id="loginForm">
             <div class="form-group">
-                <label>Alamat Email</label>
-                <input type="email" name="email" id="inputEmail" value="superadmin@stai-sidogiri.ac.id" required>
+                <label>Username / Alamat Email</label>
+                <input type="text" name="email" id="inputEmail" value="<?= htmlspecialchars($_POST['email'] ?? '') ?>" placeholder="Masukkan username atau email" autocomplete="username" required autofocus>
             </div>
             <div class="form-group">
                 <label>Kata Sandi</label>
-                <input type="password" name="password" id="inputPassword" value="password123" required>
+                <input type="password" name="password" id="inputPassword" placeholder="Masukkan kata sandi" autocomplete="current-password" required>
             </div>
             <button type="submit">Masuk ke Panel</button>
         </form>
 
-        <div style="margin-top:20px;padding-top:16px;border-top:1px dashed var(--line);text-align:center">
-            <p style="font-size:12px;font-weight:700;color:#62756a;margin-bottom:8px">PILIHAN MASUK CEPAT (UNTUK SIAPA SAJA):</p>
-            <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap">
-                <button type="button" onclick="setRole('superadmin@stai-sidogiri.ac.id', 'password123')" style="width:auto;height:auto;padding:6px 12px;font-size:12px;background:#e6f6ed;color:var(--g-dark);border:1px solid #bbf7d0;margin:0">
-                    👑 Super Admin
-                </button>
-                <button type="button" onclick="setRole('operator@stai-sidogiri.ac.id', 'password123')" style="width:auto;height:auto;padding:6px 12px;font-size:12px;background:#e0f2fe;color:#0369a1;border:1px solid #bae6fd;margin:0">
-                    🛠️ Operator
-                </button>
-            </div>
-        </div>
-
-        <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:6px">
+        <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:6px">
             <a href="../dosen/index.php" style="font-size:13px;font-weight:700;color:var(--g-dark);text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px;padding:8px;background:var(--bg);border-radius:8px">
                 <span>👨‍🏫 Masuk Portal Dosen (Hadir Online/Offline)</span> &rarr;
             </a>
@@ -91,14 +79,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </a>
         </div>
     </div>
-
-    <script>
-    function setRole(email, pass) {
-        document.getElementById('inputEmail').value = email;
-        document.getElementById('inputPassword').value = pass;
-        document.getElementById('loginForm').submit();
-    }
-    </script>
 </body>
 </html>
 
