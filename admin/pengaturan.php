@@ -9,6 +9,18 @@ $newDisplayKey = null;
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
 
+    $upsertPengaturan = function (string $k, string $v, string $t) use ($pdo): void {
+        $stmtCek = $pdo->prepare("SELECT `kunci` FROM `pengaturan` WHERE `kunci` = :k LIMIT 1");
+        $stmtCek->execute(['k' => $k]);
+        if ($stmtCek->fetchColumn() !== false) {
+            $pdo->prepare("UPDATE `pengaturan` SET `nilai` = :v, `tipe` = :t, `updated_at` = NOW() WHERE `kunci` = :k")
+                ->execute(['k' => $k, 'v' => $v, 't' => $t]);
+        } else {
+            $pdo->prepare("INSERT INTO `pengaturan` (`kunci`, `nilai`, `tipe`, `updated_at`) VALUES (:k, :v, :t, NOW())")
+                ->execute(['k' => $k, 'v' => $v, 't' => $t]);
+        }
+    };
+
     if ($action === 'simpan_pengaturan') {
         $settings = [
             'nama_kampus' => trim($_POST['nama_kampus'] ?? 'STAI SIDOGIRI'),
@@ -22,16 +34,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'validasi_subnet_ip' => isset($_POST['validasi_subnet_ip'])
         ];
 
-        $stmt = $pdo->prepare("INSERT INTO `pengaturan` (`kunci`, `nilai`, `tipe`, `updated_at`)
-                               VALUES (:k, :v, :t, NOW())
-                               ON DUPLICATE KEY UPDATE `nilai` = VALUES(`nilai`), `updated_at` = NOW()");
-
         foreach ($settings as $k => $v) {
-            $stmt->execute([
-                'k' => $k,
-                'v' => json_encode($v),
-                't' => is_bool($v) ? 'boolean' : (is_int($v) ? 'integer' : 'string')
-            ]);
+            $upsertPengaturan(
+                $k,
+                json_encode($v),
+                is_bool($v) ? 'boolean' : (is_int($v) ? 'integer' : 'string')
+            );
         }
 
         // Upload Logo Baru (jika ada)
@@ -64,11 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ]);
 
                     // Simpan juga ke kunci pengaturan logo_url
-                    $pdo->prepare("INSERT INTO `pengaturan` (`kunci`, `nilai`, `tipe`, `updated_at`)
-                                   VALUES ('logo_url', :v, 'string', NOW())
-                                   ON DUPLICATE KEY UPDATE `nilai` = VALUES(`nilai`), `updated_at` = NOW()")->execute([
-                        'v' => json_encode('storage/' . $relPath)
-                    ]);
+                    $upsertPengaturan('logo_url', json_encode('storage/' . $relPath), 'string');
                 }
             } else {
                 $error = "Format berkas logo tidak valid. Harap gunakan gambar PNG, JPG, WebP, atau SVG.";
@@ -93,10 +97,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $newDisplayKey = bin2hex(random_bytes(16));
         $hashKey = hash('sha256', $newDisplayKey);
 
-        $stmt = $pdo->prepare("INSERT INTO `pengaturan` (`kunci`, `nilai`, `tipe`, `updated_at`)
-                               VALUES ('hash_kunci_layar', :v, 'string', NOW())
-                               ON DUPLICATE KEY UPDATE `nilai` = VALUES(`nilai`), `updated_at` = NOW()");
-        $stmt->execute(['v' => json_encode($hashKey)]);
+        $upsertPengaturan('hash_kunci_layar', json_encode($hashKey), 'string');
 
         $message = "Kunci layar TV baru berhasil dibuat!";
     }

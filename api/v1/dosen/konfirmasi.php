@@ -65,48 +65,53 @@ if ($jadwalId > 0) {
     }
 }
 
-$upsertSql = "INSERT INTO `kehadiran_dosen` 
-                (`dosen_id`, `jadwal_id`, `tanggal`, `status`, `mode`, `jam_ganti`, `keterangan`, `waktu_absen`, `metode`, `ip_address`, `created_at`, `updated_at`)
-              VALUES 
-                (:did, :jid, :tgl, :status, :mode, :jam_ganti, :ket, :waktu, 'portal_dosen', :ip, NOW(), NOW())
-              ON DUPLICATE KEY UPDATE
-                `status` = VALUES(`status`),
-                `mode` = VALUES(`mode`),
-                `jam_ganti` = VALUES(`jam_ganti`),
-                `keterangan` = VALUES(`keterangan`),
-                `waktu_absen` = VALUES(`waktu_absen`),
-                `metode` = 'portal_dosen',
-                `ip_address` = VALUES(`ip_address`),
-                `updated_at` = NOW()";
-
-$stmtUpsert = $pdo->prepare($upsertSql);
-
-foreach ($targetJadwalIds as $tJid) {
-    $stmtUpsert->execute([
-        'did' => $dosenId,
-        'jid' => (int) $tJid,
-        'tgl' => $today,
-        'status' => $status,
-        'mode' => $mode,
-        'jam_ganti' => $jamGanti ?: null,
-        'ket' => $keterangan ?: null,
-        'waktu' => $waktuSekarang,
-        'ip' => $ip
-    ]);
-}
+$stmtCek = $pdo->prepare(
+    "SELECT `id` FROM `kehadiran_dosen` WHERE `dosen_id` = :did AND `jadwal_id` = :jid AND `tanggal` = :tgl LIMIT 1"
+);
+$stmtUpd = $pdo->prepare(
+    "UPDATE `kehadiran_dosen`
+     SET `status` = :status, `mode` = :mode, `jam_ganti` = :jam_ganti, `keterangan` = :ket,
+         `waktu_absen` = :waktu, `metode` = 'portal_dosen', `ip_address` = :ip, `updated_at` = NOW()
+     WHERE `id` = :id"
+);
+$stmtIns = $pdo->prepare(
+    "INSERT INTO `kehadiran_dosen`
+        (`dosen_id`, `jadwal_id`, `tanggal`, `status`, `mode`, `jam_ganti`, `keterangan`, `waktu_absen`, `metode`, `ip_address`, `created_at`, `updated_at`)
+     VALUES
+        (:did, :jid, :tgl, :status, :mode, :jam_ganti, :ket, :waktu, 'portal_dosen', :ip, NOW(), NOW())"
+);
 
 // Rekam juga level dosen (jadwal_id = 0) agar kompatibel
-$stmtUpsert->execute([
-    'did' => $dosenId,
-    'jid' => 0,
-    'tgl' => $today,
-    'status' => $status,
-    'mode' => $mode,
-    'jam_ganti' => $jamGanti ?: null,
-    'ket' => $keterangan ?: null,
-    'waktu' => $waktuSekarang,
-    'ip' => $ip
-]);
+$allTargetJids = array_unique(array_merge(array_map('intval', $targetJadwalIds), [0]));
+
+foreach ($allTargetJids as $tJid) {
+    $stmtCek->execute(['did' => $dosenId, 'jid' => $tJid, 'tgl' => $today]);
+    $existId = $stmtCek->fetchColumn();
+
+    if ($existId) {
+        $stmtUpd->execute([
+            'status' => $status,
+            'mode' => $mode,
+            'jam_ganti' => $jamGanti ?: null,
+            'ket' => $keterangan ?: null,
+            'waktu' => $waktuSekarang,
+            'ip' => $ip,
+            'id' => $existId
+        ]);
+    } else {
+        $stmtIns->execute([
+            'did' => $dosenId,
+            'jid' => $tJid,
+            'tgl' => $today,
+            'status' => $status,
+            'mode' => $mode,
+            'jam_ganti' => $jamGanti ?: null,
+            'ket' => $keterangan ?: null,
+            'waktu' => $waktuSekarang,
+            'ip' => $ip
+        ]);
+    }
+}
 
 // Label status untuk pesan
 $statusLabel = match($status) {

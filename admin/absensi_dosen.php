@@ -167,43 +167,55 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (strlen($waktuAbsen) === 5) $waktuAbsen .= ':00';
 
             try {
-                $sqlInsert = "INSERT INTO `kehadiran_dosen` 
-                                (`dosen_id`, `jadwal_id`, `tanggal`, `status`, `mode`, `jam_ganti`, `keterangan`, `waktu_absen`, `metode`, `ip_address`, `created_at`, `updated_at`)
-                              VALUES 
-                                (:did, :jid, :tgl, :status, :mode, :jam_ganti, :ket, :waktu, 'manual', :ip, NOW(), NOW())
-                              ON DUPLICATE KEY UPDATE 
-                                `status` = VALUES(`status`), 
-                                `mode` = VALUES(`mode`), 
-                                `jam_ganti` = VALUES(`jam_ganti`), 
-                                `keterangan` = VALUES(`keterangan`), 
-                                `waktu_absen` = VALUES(`waktu_absen`), 
-                                `metode` = 'manual', 
-                                `updated_at` = NOW()";
-                $stmtIns = $pdo->prepare($sqlInsert);
-                $stmtIns->execute([
-                    'did' => $did,
-                    'jid' => $jid,
-                    'tgl' => $tgl,
-                    'status' => $status,
-                    'mode' => $status === 'hadir' ? $mode : null,
-                    'jam_ganti' => $jamGanti ?: null,
-                    'ket' => $keterangan ?: null,
-                    'waktu' => $waktuAbsen,
-                    'ip' => $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1'
-                ]);
+                $stmtCek = $pdo->prepare(
+                    "SELECT `id` FROM `kehadiran_dosen` WHERE `dosen_id` = :did AND `jadwal_id` = :jid AND `tanggal` = :tgl LIMIT 1"
+                );
+                $stmtUpd = $pdo->prepare(
+                    "UPDATE `kehadiran_dosen`
+                     SET `status` = :status, `mode` = :mode, `jam_ganti` = :jam_ganti, `keterangan` = :ket,
+                         `waktu_absen` = :waktu, `metode` = 'manual', `ip_address` = :ip, `updated_at` = NOW()
+                     WHERE `id` = :id"
+                );
+                $stmtIns = $pdo->prepare(
+                    "INSERT INTO `kehadiran_dosen`
+                        (`dosen_id`, `jadwal_id`, `tanggal`, `status`, `mode`, `jam_ganti`, `keterangan`, `waktu_absen`, `metode`, `ip_address`, `created_at`, `updated_at`)
+                     VALUES
+                        (:did, :jid, :tgl, :status, :mode, :jam_ganti, :ket, :waktu, 'manual', :ip, NOW(), NOW())"
+                );
 
-                // Update juga fallback jadwal_id = 0 agar tampilan Kiosk selalu tersinkron
-                $stmtIns->execute([
-                    'did' => $did,
-                    'jid' => 0,
-                    'tgl' => $tgl,
-                    'status' => $status,
-                    'mode' => $status === 'hadir' ? $mode : null,
-                    'jam_ganti' => $jamGanti ?: null,
-                    'ket' => $keterangan ?: null,
-                    'waktu' => $waktuAbsen,
-                    'ip' => $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1'
-                ]);
+                // Simpan untuk jadwal spesifik dan juga fallback jadwal_id = 0 agar tampilan Kiosk selalu tersinkron
+                $targetJids = array_unique([$jid, 0]);
+                $ipAddr = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
+                $modeVal = $status === 'hadir' ? $mode : null;
+
+                foreach ($targetJids as $tJid) {
+                    $stmtCek->execute(['did' => $did, 'jid' => $tJid, 'tgl' => $tgl]);
+                    $existId = $stmtCek->fetchColumn();
+
+                    if ($existId) {
+                        $stmtUpd->execute([
+                            'status' => $status,
+                            'mode' => $modeVal,
+                            'jam_ganti' => $jamGanti ?: null,
+                            'ket' => $keterangan ?: null,
+                            'waktu' => $waktuAbsen,
+                            'ip' => $ipAddr,
+                            'id' => $existId
+                        ]);
+                    } else {
+                        $stmtIns->execute([
+                            'did' => $did,
+                            'jid' => $tJid,
+                            'tgl' => $tgl,
+                            'status' => $status,
+                            'mode' => $modeVal,
+                            'jam_ganti' => $jamGanti ?: null,
+                            'ket' => $keterangan ?: null,
+                            'waktu' => $waktuAbsen,
+                            'ip' => $ipAddr
+                        ]);
+                    }
+                }
 
                 $pdo->prepare("INSERT INTO `audit_log` (`aktor_tipe`, `aktor_id`, `aksi`, `entitas`, `entitas_id`, `created_at`)
                                VALUES ('admin', :uid, 'koreksi_presensi_dosen', 'kehadiran_dosen', :did, NOW())")

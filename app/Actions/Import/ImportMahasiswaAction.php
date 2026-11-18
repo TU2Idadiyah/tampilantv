@@ -99,19 +99,39 @@ class ImportMahasiswaAction
                 $stmtDel->execute(['pid' => $periodeId]);
             }
 
-            $sqlUpsert = "INSERT INTO `statistik_mahasiswa`
-                (`periode_id`, `prodi_id`, `tahun_angkatan`, `jumlah`, `created_at`, `updated_at`)
-                VALUES (:pid, :prodi_id, :angkatan, :jumlah, NOW(), NOW())
-                ON DUPLICATE KEY UPDATE `jumlah` = VALUES(`jumlah`), `updated_at` = NOW()";
-            $stmtUpsert = $this->pdo->prepare($sqlUpsert);
+            $stmtCheck = $this->pdo->prepare(
+                "SELECT `id` FROM `statistik_mahasiswa` WHERE `periode_id` = :pid AND `prodi_id` = :prodi_id AND `tahun_angkatan` = :angkatan LIMIT 1"
+            );
+            $stmtUpdate = $this->pdo->prepare(
+                "UPDATE `statistik_mahasiswa` SET `jumlah` = :jumlah, `updated_at` = NOW() WHERE `id` = :id"
+            );
+            $stmtInsert = $this->pdo->prepare(
+                "INSERT INTO `statistik_mahasiswa`
+                    (`periode_id`, `prodi_id`, `tahun_angkatan`, `jumlah`, `created_at`, `updated_at`)
+                 VALUES (:pid, :prodi_id, :angkatan, :jumlah, NOW(), NOW())"
+            );
 
             foreach ($preview['valid_rows'] as $row) {
-                $stmtUpsert->execute([
+                $stmtCheck->execute([
                     'pid' => $row['periode_id'],
                     'prodi_id' => $row['prodi_id'],
-                    'angkatan' => $row['tahun_angkatan'],
-                    'jumlah' => $row['jumlah']
+                    'angkatan' => $row['tahun_angkatan']
                 ]);
+                $existingId = $stmtCheck->fetchColumn();
+
+                if ($existingId) {
+                    $stmtUpdate->execute([
+                        'jumlah' => $row['jumlah'],
+                        'id' => $existingId
+                    ]);
+                } else {
+                    $stmtInsert->execute([
+                        'pid' => $row['periode_id'],
+                        'prodi_id' => $row['prodi_id'],
+                        'angkatan' => $row['tahun_angkatan'],
+                        'jumlah' => $row['jumlah']
+                    ]);
+                }
             }
 
             // Catat ke import_log

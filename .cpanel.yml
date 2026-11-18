@@ -1,9 +1,13 @@
 ---
 deployment:
   tasks:
+    - /bin/cp /home/dptmqocf/staisidogiri.halacoding.my.id/storage/database.sqlite /home/dptmqocf/.stai_db_backup_sub.sqlite 2>/dev/null || true
     - /bin/cp -R * /home/dptmqocf/staisidogiri.halacoding.my.id/ 2>/dev/null || true
     - /bin/cp .htaccess /home/dptmqocf/staisidogiri.halacoding.my.id/ 2>/dev/null || true
+    - /bin/mv /home/dptmqocf/.stai_db_backup_sub.sqlite /home/dptmqocf/staisidogiri.halacoding.my.id/storage/database.sqlite 2>/dev/null || true
     - /bin/chmod -R 775 /home/dptmqocf/staisidogiri.halacoding.my.id/storage 2>/dev/null || true
+    - /bin/cp /home/dptmqocf/public_html/storage/database.sqlite /home/dptmqocf/.stai_db_backup_pub.sqlite 2>/dev/null || true
     - /bin/cp -R * /home/dptmqocf/public_html/ 2>/dev/null || true
     - /bin/cp .htaccess /home/dptmqocf/public_html/ 2>/dev/null || true
+    - /bin/mv /home/dptmqocf/.stai_db_backup_pub.sqlite /home/dptmqocf/public_html/storage/database.sqlite 2>/dev/null || true
     - /bin/chmod -R 775 /home/dptmqocf/public_html/storage 2>/dev/null || true

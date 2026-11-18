@@ -133,37 +133,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $todayDate = date('Y-m-d');
         
         try {
-            $stmtKD = $pdo->prepare("INSERT INTO `kehadiran_dosen` 
-                                       (`dosen_id`, `jadwal_id`, `tanggal`, `status`, `mode`, `jam_ganti`, `keterangan`, `waktu_absen`, `metode`, `created_at`, `updated_at`)
-                                     VALUES 
-                                       (:did, :jid, :tgl, :status, :mode, :jam_ganti, :ket, NOW(), 'manual', NOW(), NOW())
-                                     ON DUPLICATE KEY UPDATE 
-                                       `status` = VALUES(`status`), 
-                                       `mode` = VALUES(`mode`), 
-                                       `jam_ganti` = VALUES(`jam_ganti`), 
-                                       `keterangan` = VALUES(`keterangan`), 
-                                       `metode` = 'manual', 
-                                       `updated_at` = NOW()");
-            $stmtKD->execute([
-                'did' => $did,
-                'jid' => $jid,
-                'tgl' => $todayDate,
-                'status' => $status,
-                'mode' => $status === 'hadir' ? $mode : null,
-                'jam_ganti' => $jamGanti ?: null,
-                'ket' => $keterangan ?: null
-            ]);
+            $stmtCek = $pdo->prepare(
+                "SELECT `id` FROM `kehadiran_dosen` WHERE `dosen_id` = :did AND `jadwal_id` = :jid AND `tanggal` = :tgl LIMIT 1"
+            );
+            $stmtUpd = $pdo->prepare(
+                "UPDATE `kehadiran_dosen`
+                 SET `status` = :status, `mode` = :mode, `jam_ganti` = :jam_ganti, `keterangan` = :ket,
+                     `metode` = 'manual', `updated_at` = NOW()
+                 WHERE `id` = :id"
+            );
+            $stmtIns = $pdo->prepare(
+                "INSERT INTO `kehadiran_dosen`
+                    (`dosen_id`, `jadwal_id`, `tanggal`, `status`, `mode`, `jam_ganti`, `keterangan`, `waktu_absen`, `metode`, `created_at`, `updated_at`)
+                 VALUES
+                    (:did, :jid, :tgl, :status, :mode, :jam_ganti, :ket, NOW(), 'manual', NOW(), NOW())"
+            );
 
             // Jika spesifik jadwal, update juga fallback jadwal_id = 0
-            $stmtKD->execute([
-                'did' => $did,
-                'jid' => 0,
-                'tgl' => $todayDate,
-                'status' => $status,
-                'mode' => $status === 'hadir' ? $mode : null,
-                'jam_ganti' => $jamGanti ?: null,
-                'ket' => $keterangan ?: null
-            ]);
+            $targetJids = array_unique([$jid, 0]);
+            $modeVal = $status === 'hadir' ? $mode : null;
+
+            foreach ($targetJids as $tJid) {
+                $stmtCek->execute(['did' => $did, 'jid' => $tJid, 'tgl' => $todayDate]);
+                $existId = $stmtCek->fetchColumn();
+
+                if ($existId) {
+                    $stmtUpd->execute([
+                        'status' => $status,
+                        'mode' => $modeVal,
+                        'jam_ganti' => $jamGanti ?: null,
+                        'ket' => $keterangan ?: null,
+                        'id' => $existId
+                    ]);
+                } else {
+                    $stmtIns->execute([
+                        'did' => $did,
+                        'jid' => $tJid,
+                        'tgl' => $todayDate,
+                        'status' => $status,
+                        'mode' => $modeVal,
+                        'jam_ganti' => $jamGanti ?: null,
+                        'ket' => $keterangan ?: null
+                    ]);
+                }
+            }
 
             $pdo->prepare("INSERT INTO `audit_log` (`aktor_tipe`, `aktor_id`, `aksi`, `entitas`, `entitas_id`, `created_at`)
                            VALUES ('admin', :uid, 'koreksi_kehadiran_dosen', 'kehadiran_dosen', :did, NOW())")
