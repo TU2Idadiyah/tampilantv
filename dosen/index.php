@@ -760,6 +760,9 @@ if ($dosen) {
           <a href="presensi_mahasiswa.php" class="btn-icon" style="background:var(--brand-soft);color:var(--brand-dark);border-color:var(--brand);font-weight:700" title="Presensi Mahasiswa & Jurnal Perkuliahan">
             <i class="fa-solid fa-clipboard-user"></i> <span>Presensi Mhs</span>
           </a>
+          <a href="rekap_presensi.php" class="btn-icon" style="background:#e0f2fe;color:#0284c7;border-color:#bae6fd;font-weight:700" title="Rekapitulasi Presensi Mahasiswa per Mata Kuliah">
+            <i class="fa-solid fa-table-cells"></i> <span>Rekap Mhs</span>
+          </a>
           <a href="../api/v1/dosen/logout.php" class="btn-icon" style="color:var(--rose)" title="Keluar dari akun">
             <i class="fa-solid fa-right-from-bracket"></i>
           </a>
@@ -901,6 +904,10 @@ if ($dosen) {
           <i class="fa-solid fa-clipboard-user" style="color:var(--brand)"></i>
           <span>Presensi Mhs</span>
         </a>
+        <a href="rekap_presensi.php" class="tab-btn" style="text-decoration:none">
+          <i class="fa-solid fa-table-cells" style="color:var(--sky)"></i>
+          <span>Rekap Mhs</span>
+        </a>
       </div>
 
       <!-- TAB 1: JADWAL HARI INI -->
@@ -986,9 +993,12 @@ if ($dosen) {
                 <?php endif; ?>
               <?php endif; ?>
 
-              <div style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);display:flex;justify-content:flex-end">
+              <div style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);display:flex;justify-content:flex-end;gap:6px">
+                <a href="rekap_presensi.php?jadwal_id=<?= $j['id'] ?>" class="btn-icon" style="background:#e0f2fe;color:#0284c7;border-color:#bae6fd;font-weight:700">
+                  <i class="fa-solid fa-table-cells"></i> <span>Rekap Presensi</span>
+                </a>
                 <a href="presensi_mahasiswa.php?jadwal_id=<?= $j['id'] ?>" class="btn-icon" style="background:var(--brand-soft);color:var(--brand-dark);border-color:var(--brand);font-weight:700">
-                  <i class="fa-solid fa-clipboard-user"></i> <span>Presensi &amp; Jurnal Mahasiswa</span>
+                  <i class="fa-solid fa-clipboard-user"></i> <span>Presensi &amp; Jurnal</span>
                 </a>
               </div>
             </div>
@@ -1012,6 +1022,9 @@ if ($dosen) {
                     <div class="sch-time" style="font-size:11px">
                       <?= $wj['jam_mulai'] ?>–<?= $wj['jam_selesai'] ?>
                     </div>
+                    <a href="rekap_presensi.php?jadwal_id=<?= $wj['id'] ?>" class="btn-icon" style="padding:4px 8px;font-size:11px;background:#e0f2fe;color:#0284c7;border-color:#bae6fd" title="Rekapitulasi Presensi Kelas">
+                      <i class="fa-solid fa-table-cells"></i> <span>Rekap</span>
+                    </a>
                     <a href="presensi_mahasiswa.php?jadwal_id=<?= $wj['id'] ?>" class="btn-icon" style="padding:4px 8px;font-size:11px;background:var(--brand-soft);color:var(--brand-dark);border-color:var(--brand)" title="Presensi & Jurnal Mahasiswa">
                       <i class="fa-solid fa-clipboard-user"></i> <span>Presensi</span>
                     </a>

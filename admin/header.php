@@ -115,6 +115,7 @@ try {
             <a href="index.php" class="<?= $currentScript === 'index.php' ? 'active' : '' ?>">📊 Dashboard</a>
             <a href="absensi.php" class="<?= $currentScript === 'absensi.php' ? 'active' : '' ?>">📋 Presensi Pengurus</a>
             <a href="absensi_dosen.php" class="<?= $currentScript === 'absensi_dosen.php' ? 'active' : '' ?>">🎓 Rekap Presensi Dosen</a>
+            <a href="absensi_mahasiswa.php" class="<?= $currentScript === 'absensi_mahasiswa.php' ? 'active' : '' ?>">🧑‍🎓 Rekap Presensi Mahasiswa</a>
             <a href="pengurus.php" class="<?= $currentScript === 'pengurus.php' ? 'active' : '' ?>">👥 Kelola Pengurus & Foto</a>
             <a href="dosen.php" class="<?= $currentScript === 'dosen.php' ? 'active' : '' ?>">👨‍🏫 Kelola Dosen & Foto</a>
             <a href="prodi.php" class="<?= $currentScript === 'prodi.php' ? 'active' : '' ?>">🎓 Program Studi (Prodi)</a>
@@ -148,6 +149,7 @@ try {
                         'index.php' => 'Dashboard Sistem',
                         'absensi.php' => 'Presensi Pengurus & Koreksi Manual',
                         'absensi_dosen.php' => 'Rekapitulasi & Presensi Dosen Kampus',
+                        'absensi_mahasiswa.php' => 'Rekapitulasi Presensi Mahasiswa',
                         'pengurus.php' => 'Pengurus, Foto, PIN, & Perangkat HP',
                         'dosen.php' => 'Master Data Dosen & Foto Pengajar',
                         'prodi.php' => 'Master Data Program Studi (Prodi)',

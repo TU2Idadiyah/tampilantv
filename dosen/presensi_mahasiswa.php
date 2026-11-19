@@ -711,6 +711,9 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv' && $activeJadwal) {
         </div>
       </div>
       
+      <a href="rekap_presensi.php?jadwal_id=<?= $selectedJadwalId ?>" class="btn-icon" style="background:#e0f2fe;color:#0284c7;border-color:#bae6fd;font-weight:700" title="Rekapitulasi Presensi & Unduh Laporan Kelas">
+        <i class="fa-solid fa-table-cells"></i> <span>Rekap Presensi Mhs</span>
+      </a>
       <a href="index.php" class="btn-icon" title="Kembali ke Dashboard Utama Dosen">
         <i class="fa-solid fa-arrow-left"></i> <span>Kembali ke Jadwal</span>
       </a>
@@ -890,6 +893,9 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv' && $activeJadwal) {
                   </small>
                 </div>
                 <div style="display:flex;gap:6px">
+                  <a href="rekap_presensi.php?jadwal_id=<?= $selectedJadwalId ?>" class="btn-secondary" style="font-size:12.5px;padding:6px 12px;color:#0284c7;background:#e0f2fe;border-color:#bae6fd;font-weight:700" title="Lihat Rekap Presensi Lengkap Kelas Ini">
+                    <i class="fa-solid fa-table-cells"></i> <span>Lihat Rekap Kelas</span>
+                  </a>
                   <button type="button" class="btn-secondary" onclick="markAllStatus('hadir')" style="font-size:12.5px;padding:6px 12px;color:#15803d;background:#dcfce7;border-color:#bbf7d0;font-weight:700">
                     <i class="fa-solid fa-check-double"></i> <span>Set Semua Hadir</span>
                   </button>
