@@ -193,7 +193,7 @@ try {
                 </div>
                 <div class="portal-info">
                     <b>Portal Dosen <span class="portal-badge" style="background:#e0f2fe;color:#0284c7">Dosen Pengajar</span></b>
-                    <small>Konfirmasi jadwal perkuliahan hari ini (Hadir Offline, Online, Tukar Jam, atau Izin).</small>
+                    <small>Konfirmasi kehadiran mengajar, presensi mahasiswa kelas, dan jurnal materi perkuliahan.</small>
                 </div>
                 <div class="arrow"><i class="fa-solid fa-arrow-right"></i></div>
             </a>

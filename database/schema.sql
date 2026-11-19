@@ -277,5 +277,56 @@ CREATE TABLE `audit_log` (
     INDEX `idx_audit_created` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- 17. Tabel Jurnal Perkuliahan (Jurnal & Materi Perkuliahan Dosen)
+DROP TABLE IF EXISTS `jurnal_perkuliahan`;
+CREATE TABLE `jurnal_perkuliahan` (
+    `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `jadwal_id` BIGINT UNSIGNED NOT NULL,
+    `dosen_id` BIGINT UNSIGNED NOT NULL,
+    `pertemuan_ke` INT NOT NULL,
+    `tanggal` DATE NOT NULL,
+    `jam_mulai` VARCHAR(10) NULL,
+    `jam_selesai` VARCHAR(10) NULL,
+    `materi` TEXT NOT NULL COMMENT 'Materi / Pokok Bahasan Perkuliahan',
+    `capaian_catatan` TEXT NULL,
+    `metode` VARCHAR(20) DEFAULT 'offline',
+    `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX `idx_jp_jadwal` (`jadwal_id`),
+    INDEX `idx_jp_dosen` (`dosen_id`),
+    CONSTRAINT `fk_jurnal_jadwal` FOREIGN KEY (`jadwal_id`) REFERENCES `jadwal_kuliah` (`id`) ON DELETE CASCADE,
+    CONSTRAINT `fk_jurnal_dosen` FOREIGN KEY (`dosen_id`) REFERENCES `dosen` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 18. Tabel Presensi Mahasiswa (Status Kehadiran Mahasiswa Per Pertemuan)
+DROP TABLE IF EXISTS `presensi_mahasiswa`;
+CREATE TABLE `presensi_mahasiswa` (
+    `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `jurnal_id` BIGINT UNSIGNED NOT NULL,
+    `jadwal_id` BIGINT UNSIGNED NOT NULL,
+    `nim` VARCHAR(50) NULL,
+    `nama` VARCHAR(150) NOT NULL,
+    `status` VARCHAR(20) NOT NULL DEFAULT 'hadir' COMMENT 'hadir, izin, sakit, alpa',
+    `catatan` VARCHAR(255) NULL,
+    `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX `idx_pm_jurnal` (`jurnal_id`),
+    INDEX `idx_pm_jadwal` (`jadwal_id`),
+    CONSTRAINT `fk_pm_jurnal` FOREIGN KEY (`jurnal_id`) REFERENCES `jurnal_perkuliahan` (`id`) ON DELETE CASCADE,
+    CONSTRAINT `fk_pm_jadwal` FOREIGN KEY (`jadwal_id`) REFERENCES `jadwal_kuliah` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 19. Tabel Mahasiswa Per Kelas (Master Daftar Nama Mahasiswa Kelas)
+DROP TABLE IF EXISTS `kelas_mahasiswa`;
+CREATE TABLE `kelas_mahasiswa` (
+    `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `jadwal_id` BIGINT UNSIGNED NOT NULL,
+    `nim` VARCHAR(50) NULL,
+    `nama` VARCHAR(150) NOT NULL,
+    `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX `idx_km_jadwal` (`jadwal_id`),
+    CONSTRAINT `fk_km_jadwal` FOREIGN KEY (`jadwal_id`) REFERENCES `jadwal_kuliah` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 SET FOREIGN_KEY_CHECKS = 1;
 

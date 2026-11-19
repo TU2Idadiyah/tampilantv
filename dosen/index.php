@@ -757,6 +757,9 @@ if ($dosen) {
           <i class="fa-solid fa-tv"></i> <span>Layar TV</span>
         </a>
         <?php if ($dosen): ?>
+          <a href="presensi_mahasiswa.php" class="btn-icon" style="background:var(--brand-soft);color:var(--brand-dark);border-color:var(--brand);font-weight:700" title="Presensi Mahasiswa & Jurnal Perkuliahan">
+            <i class="fa-solid fa-clipboard-user"></i> <span>Presensi Mhs</span>
+          </a>
           <a href="../api/v1/dosen/logout.php" class="btn-icon" style="color:var(--rose)" title="Keluar dari akun">
             <i class="fa-solid fa-right-from-bracket"></i>
           </a>
@@ -880,7 +883,7 @@ if ($dosen) {
         </section>
       <?php endif; ?>
 
-      <!-- Tab Navigasi Jadwal Hari Ini vs Jadwal Mingguan vs Rekap -->
+      <!-- Tab Navigasi Jadwal Hari Ini vs Jadwal Mingguan vs Rekap vs Presensi Mhs -->
       <div class="tabs-nav">
         <button class="tab-btn active" onclick="switchTab('today')" id="tabTodayBtn">
           <i class="fa-solid fa-calendar-day"></i>
@@ -892,8 +895,12 @@ if ($dosen) {
         </button>
         <button class="tab-btn" onclick="switchTab('rekap')" id="tabRekapBtn">
           <i class="fa-solid fa-chart-pie"></i>
-          <span>Rekap &amp; Riwayat</span>
+          <span>Rekap Kehadiran</span>
         </button>
+        <a href="presensi_mahasiswa.php" class="tab-btn" style="text-decoration:none">
+          <i class="fa-solid fa-clipboard-user" style="color:var(--brand)"></i>
+          <span>Presensi Mhs</span>
+        </a>
       </div>
 
       <!-- TAB 1: JADWAL HARI INI -->
@@ -978,6 +985,12 @@ if ($dosen) {
                   </div>
                 <?php endif; ?>
               <?php endif; ?>
+
+              <div style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);display:flex;justify-content:flex-end">
+                <a href="presensi_mahasiswa.php?jadwal_id=<?= $j['id'] ?>" class="btn-icon" style="background:var(--brand-soft);color:var(--brand-dark);border-color:var(--brand);font-weight:700">
+                  <i class="fa-solid fa-clipboard-user"></i> <span>Presensi &amp; Jurnal Mahasiswa</span>
+                </a>
+              </div>
             </div>
           <?php endforeach; ?>
         <?php endif; ?>
@@ -991,12 +1004,17 @@ if ($dosen) {
               <h4><i class="fa-regular fa-calendar"></i> Hari <?= htmlspecialchars($w['hari_nama']) ?> (<?= count($w['jadwal']) ?> Kelas)</h4>
               <?php foreach ($w['jadwal'] as $wj): ?>
                 <div class="weekly-item">
-                  <div>
+                  <div style="flex:1">
                     <b><?= htmlspecialchars($wj['mata_kuliah']) ?></b> (Kelas <?= htmlspecialchars($wj['kelas']) ?>)
                     <small style="display:block"><?= htmlspecialchars($wj['prodi_nama']) ?> · Ruang <?= htmlspecialchars($wj['ruang']) ?></small>
                   </div>
-                  <div class="sch-time" style="font-size:11px">
-                    <?= $wj['jam_mulai'] ?>–<?= $wj['jam_selesai'] ?>
+                  <div style="display:flex;align-items:center;gap:6px">
+                    <div class="sch-time" style="font-size:11px">
+                      <?= $wj['jam_mulai'] ?>–<?= $wj['jam_selesai'] ?>
+                    </div>
+                    <a href="presensi_mahasiswa.php?jadwal_id=<?= $wj['id'] ?>" class="btn-icon" style="padding:4px 8px;font-size:11px;background:var(--brand-soft);color:var(--brand-dark);border-color:var(--brand)" title="Presensi & Jurnal Mahasiswa">
+                      <i class="fa-solid fa-clipboard-user"></i> <span>Presensi</span>
+                    </a>
                   </div>
                 </div>
               <?php endforeach; ?>

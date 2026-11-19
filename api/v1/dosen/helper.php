@@ -224,3 +224,167 @@ function getDosenRekapBulanan(PDO $pdo, int $dosenId, string $bulan): array {
         'tidak_hadir' => (int)($res['tidak_hadir'] ?? 0)
     ];
 }
+
+/**
+ * Pastikan tabel jurnal_perkuliahan, presensi_mahasiswa, dan kelas_mahasiswa tersedia
+ * Kompatibel 100% dengan SQLite dan MySQL
+ */
+function ensurePresensiMahasiswaTables(PDO $pdo): void {
+    static $ensured = false;
+    if ($ensured) return;
+    $driver = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+    try {
+        if ($driver === 'sqlite') {
+            $pdo->exec("CREATE TABLE IF NOT EXISTS `jurnal_perkuliahan` (
+                `id` INTEGER PRIMARY KEY AUTOINCREMENT,
+                `jadwal_id` INTEGER NOT NULL,
+                `dosen_id` INTEGER NOT NULL,
+                `pertemuan_ke` INTEGER NOT NULL,
+                `tanggal` TEXT NOT NULL,
+                `jam_mulai` TEXT NULL,
+                `jam_selesai` TEXT NULL,
+                `materi` TEXT NOT NULL,
+                `capaian_catatan` TEXT NULL,
+                `metode` TEXT DEFAULT 'offline',
+                `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+                `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP
+            )");
+
+            $pdo->exec("CREATE TABLE IF NOT EXISTS `presensi_mahasiswa` (
+                `id` INTEGER PRIMARY KEY AUTOINCREMENT,
+                `jurnal_id` INTEGER NOT NULL,
+                `jadwal_id` INTEGER NOT NULL,
+                `nim` TEXT NULL,
+                `nama` TEXT NOT NULL,
+                `status` TEXT NOT NULL DEFAULT 'hadir',
+                `catatan` TEXT NULL,
+                `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+                `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP
+            )");
+
+            $pdo->exec("CREATE TABLE IF NOT EXISTS `kelas_mahasiswa` (
+                `id` INTEGER PRIMARY KEY AUTOINCREMENT,
+                `jadwal_id` INTEGER NOT NULL,
+                `nim` TEXT NULL,
+                `nama` TEXT NOT NULL,
+                `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP
+            )");
+        } else {
+            $pdo->exec("CREATE TABLE IF NOT EXISTS `jurnal_perkuliahan` (
+                `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                `jadwal_id` BIGINT UNSIGNED NOT NULL,
+                `dosen_id` BIGINT UNSIGNED NOT NULL,
+                `pertemuan_ke` INT NOT NULL,
+                `tanggal` DATE NOT NULL,
+                `jam_mulai` VARCHAR(10) NULL,
+                `jam_selesai` VARCHAR(10) NULL,
+                `materi` TEXT NOT NULL,
+                `capaian_catatan` TEXT NULL,
+                `metode` VARCHAR(20) DEFAULT 'offline',
+                `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+                `updated_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+                INDEX `idx_jp_jadwal` (`jadwal_id`),
+                INDEX `idx_jp_dosen` (`dosen_id`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+            $pdo->exec("CREATE TABLE IF NOT EXISTS `presensi_mahasiswa` (
+                `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                `jurnal_id` BIGINT UNSIGNED NOT NULL,
+                `jadwal_id` BIGINT UNSIGNED NOT NULL,
+                `nim` VARCHAR(50) NULL,
+                `nama` VARCHAR(150) NOT NULL,
+                `status` VARCHAR(20) NOT NULL DEFAULT 'hadir',
+                `catatan` VARCHAR(255) NULL,
+                `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+                `updated_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+                INDEX `idx_pm_jurnal` (`jurnal_id`),
+                INDEX `idx_pm_jadwal` (`jadwal_id`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+            $pdo->exec("CREATE TABLE IF NOT EXISTS `kelas_mahasiswa` (
+                `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                `jadwal_id` BIGINT UNSIGNED NOT NULL,
+                `nim` VARCHAR(50) NULL,
+                `nama` VARCHAR(150) NOT NULL,
+                `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+                INDEX `idx_km_jadwal` (`jadwal_id`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+        }
+        $ensured = true;
+    } catch (Throwable $t) {
+        error_log("ensurePresensiMahasiswaTables error: " . $t->getMessage());
+    }
+}
+
+/**
+ * Ambil seluruh kelas/jadwal yang diampu oleh seorang dosen
+ */
+function getDosenClasses(PDO $pdo, int $dosenId): array {
+    $sql = "SELECT j.id, j.mata_kuliah, j.kelas, j.ruang, j.hari, j.jam_mulai, j.jam_selesai,
+                   pr.nama AS prodi_nama, pa.kode AS periode_kode
+            FROM `jadwal_kuliah` j
+            JOIN `prodi` pr ON pr.id = j.prodi_id
+            JOIN `periode_akademik` pa ON pa.id = j.periode_id
+            WHERE j.dosen_id = :dosen_id AND j.aktif = 1
+            ORDER BY j.hari ASC, j.jam_mulai ASC";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute(['dosen_id' => $dosenId]);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+/**
+ * Ambil daftar master mahasiswa yang terdaftar di suatu kelas/jadwal
+ */
+function getKelasMahasiswa(PDO $pdo, int $jadwalId): array {
+    ensurePresensiMahasiswaTables($pdo);
+    $stmt = $pdo->prepare("SELECT * FROM `kelas_mahasiswa` WHERE jadwal_id = :jid ORDER BY nama ASC");
+    $stmt->execute(['jid' => $jadwalId]);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+/**
+ * Ambil riwayat jurnal perkuliahan dan rekap presensi untuk suatu kelas
+ */
+function getJurnalList(PDO $pdo, int $jadwalId): array {
+    ensurePresensiMahasiswaTables($pdo);
+    $stmt = $pdo->prepare("SELECT * FROM `jurnal_perkuliahan` WHERE jadwal_id = :jid ORDER BY pertemuan_ke ASC, tanggal ASC");
+    $stmt->execute(['jid' => $jadwalId]);
+    $jurnals = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    foreach ($jurnals as &$j) {
+        $stmtStat = $pdo->prepare("SELECT 
+            COUNT(*) as total,
+            SUM(CASE WHEN status = 'hadir' THEN 1 ELSE 0 END) as hadir,
+            SUM(CASE WHEN status = 'izin' THEN 1 ELSE 0 END) as izin,
+            SUM(CASE WHEN status = 'sakit' THEN 1 ELSE 0 END) as sakit,
+            SUM(CASE WHEN status = 'alpa' THEN 1 ELSE 0 END) as alpa
+            FROM `presensi_mahasiswa` WHERE jurnal_id = :jid");
+        $stmtStat->execute(['jid' => $j['id']]);
+        $stat = $stmtStat->fetch(PDO::FETCH_ASSOC);
+        $j['stat'] = [
+            'total' => (int)($stat['total'] ?? 0),
+            'hadir' => (int)($stat['hadir'] ?? 0),
+            'izin' => (int)($stat['izin'] ?? 0),
+            'sakit' => (int)($stat['sakit'] ?? 0),
+            'alpa' => (int)($stat['alpa'] ?? 0)
+        ];
+    }
+    return $jurnals;
+}
+
+/**
+ * Ambil detail satu pertemuan jurnal perkuliahan dan presensi mahasiswa
+ */
+function getJurnalDetail(PDO $pdo, int $jurnalId): ?array {
+    ensurePresensiMahasiswaTables($pdo);
+    $stmt = $pdo->prepare("SELECT * FROM `jurnal_perkuliahan` WHERE id = :id LIMIT 1");
+    $stmt->execute(['id' => $jurnalId]);
+    $jurnal = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$jurnal) return null;
+
+    $stmtPresensi = $pdo->prepare("SELECT * FROM `presensi_mahasiswa` WHERE jurnal_id = :jid ORDER BY nama ASC");
+    $stmtPresensi->execute(['jid' => $jurnalId]);
+    $jurnal['presensi'] = $stmtPresensi->fetchAll(PDO::FETCH_ASSOC);
+    return $jurnal;
+}
+
