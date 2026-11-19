@@ -195,70 +195,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     }
-
-    // 3. Tambah / Salin Mahasiswa Massal atau Unggah CSV ke Kelas
-    if ($action === 'save_roster') {
-        $jadwalId = (int)($_POST['jadwal_id'] ?? 0);
-        $rawText = trim($_POST['raw_students'] ?? '');
-        $lines = [];
-
-        if (!empty($_FILES['file_roster_csv']['tmp_name']) && is_uploaded_file($_FILES['file_roster_csv']['tmp_name'])) {
-            $rawContent = file_get_contents($_FILES['file_roster_csv']['tmp_name']);
-            if (str_starts_with($rawContent, "\xEF\xBB\xBF")) $rawContent = substr($rawContent, 3);
-            $lines = preg_split("/\r\n|\n|\r/", trim($rawContent));
-            if (!empty($lines) && (stripos($lines[0], 'nama') !== false || stripos($lines[0], 'nim') !== false)) {
-                array_shift($lines);
-            }
-        } elseif (!empty($rawText)) {
-            $lines = explode("\n", str_replace("\r", "", $rawText));
-        }
-
-        if ($jadwalId > 0 && !empty($lines)) {
-            $addedCount = 0;
-            $checkKm = $pdo->prepare("SELECT id FROM `kelas_mahasiswa` WHERE jadwal_id = :jid AND nama = :nama LIMIT 1");
-            $insertKm = $pdo->prepare("INSERT INTO `kelas_mahasiswa` (jadwal_id, nim, nama, created_at) VALUES (:jid, :nim, :nama, CURRENT_TIMESTAMP)");
-
-            foreach ($lines as $line) {
-                $line = trim($line);
-                if (empty($line)) continue;
-                $nim = '';
-                $nama = $line;
-
-                if (strpos($line, ';') !== false || strpos($line, ',') !== false) {
-                    $delim = strpos($line, ';') !== false ? ';' : ',';
-                    $parts = str_getcsv($line, $delim);
-                    if (count($parts) >= 2) {
-                        $nim = trim($parts[0]);
-                        $nama = trim($parts[1]);
-                    }
-                } elseif (preg_match('/^([0-9\.\-\s]+)[\t\-,;]+(.+)$/', $line, $matches)) {
-                    $nim = trim($matches[1]);
-                    $nama = trim($matches[2]);
-                }
-
-                if ($nama !== '') {
-                    $checkKm->execute(['jid' => $jadwalId, 'nama' => $nama]);
-                    if (!$checkKm->fetch()) {
-                        $insertKm->execute(['jid' => $jadwalId, 'nim' => $nim, 'nama' => $nama]);
-                        $addedCount++;
-                    }
-                }
-            }
-            header("Location: presensi_mahasiswa.php?jadwal_id={$jadwalId}&msg=roster_added&count={$addedCount}");
-            exit;
-        }
-    }
-
-    // 4. Hapus Satu Mahasiswa dari Roster
-    if ($action === 'delete_roster_mhs') {
-        $mhsId = (int)($_POST['mhs_id'] ?? 0);
-        $jadwalId = (int)($_POST['jadwal_id'] ?? 0);
-        if ($mhsId > 0) {
-            $pdo->prepare("DELETE FROM `kelas_mahasiswa` WHERE id = :id AND jadwal_id = :jid")->execute(['id' => $mhsId, 'jid' => $jadwalId]);
-            header("Location: presensi_mahasiswa.php?jadwal_id={$jadwalId}&msg=roster_removed");
-            exit;
-        }
-    }
 }
 
 // Check flash messages from URL
@@ -590,29 +526,33 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv' && $activeJadwal) {
       border-radius: 12px;
       border: 1px solid var(--line);
       margin-top: 14px;
+      background: #fff;
+      -webkit-overflow-scrolling: touch;
     }
     table.table-presensi {
       width: 100%;
+      min-width: 680px;
       border-collapse: collapse;
-      font-size: 13px;
+      font-size: 13.5px;
       background: #fff;
     }
     table.table-presensi th {
       background: #f8fafc;
-      padding: 10px 12px;
+      padding: 12px 14px;
       text-align: left;
-      font-weight: 700;
-      color: #475569;
-      border-bottom: 1px solid var(--line);
+      font-weight: 800;
+      color: #334155;
+      border-bottom: 2px solid var(--line);
       white-space: nowrap;
+      font-size: 13px;
     }
     table.table-presensi td {
-      padding: 10px 12px;
+      padding: 12px 14px;
       border-bottom: 1px solid var(--line);
       vertical-align: middle;
     }
     table.table-presensi tr:last-child td { border-bottom: none; }
-    table.table-presensi tr:hover td { background: #f8fafc; }
+    table.table-presensi tr:hover td { background: #fbfdfc; }
 
     /* Status Radio Badges */
     .status-group {
@@ -824,25 +764,19 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv' && $activeJadwal) {
         <?php endif; ?>
       </div>
 
-      <!-- Info Ringkas Kelas Aktif & Kelola Roster Mahasiswa -->
+      <!-- Info Ringkas Kelas Aktif -->
       <?php if ($activeJadwal): ?>
         <div class="card" style="margin-top:16px">
           <div class="card-title">
             <span><i class="fa-solid fa-users" style="color:var(--sky)"></i> Mahasiswa Kelas</span>
-            <span style="font-size:12px;font-weight:700;color:var(--brand-dark)"><?= count($rosterMahasiswa) ?> Mhs</span>
+            <span style="font-size:12px;font-weight:800;color:var(--brand-dark)"><?= count($rosterMahasiswa) ?> Mhs</span>
           </div>
-          <p style="font-size:12.5px;color:var(--muted);margin-bottom:12px">
-            Daftar mahasiswa terdaftar di kelas <b><?= htmlspecialchars($activeJadwal['kelas']) ?></b>. Data ini otomatis digunakan untuk presensi setiap pertemuan.
+          <p style="font-size:12.5px;color:var(--muted);margin-bottom:10px">
+            Daftar mahasiswa terdaftar di kelas <b><?= htmlspecialchars($activeJadwal['kelas']) ?></b>.
           </p>
-          <div style="display:flex;gap:8px;flex-direction:column">
-            <button type="button" class="btn-secondary" onclick="openRosterModal()" style="justify-content:center">
-              <i class="fa-solid fa-user-plus"></i> <span>Salin / Tambah Mahasiswa</span>
-            </button>
-            <?php if (!empty($rosterMahasiswa)): ?>
-              <button type="button" class="btn-secondary" onclick="openManageRosterModal()" style="justify-content:center">
-                <i class="fa-solid fa-list-check"></i> <span>Lihat / Kelola Roster (<?= count($rosterMahasiswa) ?>)</span>
-              </button>
-            <?php endif; ?>
+          <div style="font-size:12px;color:#475569;background:#f8fafc;padding:10px 14px;border-radius:10px;line-height:1.5;border:1px solid var(--line)">
+            <i class="fa-solid fa-shield-halved" style="color:var(--brand);margin-right:4px"></i>
+            Data mahasiswa dikelola secara terpusat oleh Admin Kampus melalui menu <b>Impor Data Mahasiswa</b>.
           </div>
         </div>
       <?php endif; ?>
@@ -956,18 +890,14 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv' && $activeJadwal) {
                   </small>
                 </div>
                 <div style="display:flex;gap:6px">
-                  <button type="button" class="btn-secondary" onclick="markAllStatus('hadir')" style="font-size:12px;padding:5px 10px;color:#15803d;background:#dcfce7;border-color:#bbf7d0">
+                  <button type="button" class="btn-secondary" onclick="markAllStatus('hadir')" style="font-size:12.5px;padding:6px 12px;color:#15803d;background:#dcfce7;border-color:#bbf7d0;font-weight:700">
                     <i class="fa-solid fa-check-double"></i> <span>Set Semua Hadir</span>
-                  </button>
-                  <button type="button" class="btn-secondary" onclick="openRosterModal()" style="font-size:12px;padding:5px 10px">
-                    <i class="fa-solid fa-user-plus"></i> <span>+ Mhs</span>
                   </button>
                 </div>
               </div>
 
               <?php
                 // Tentukan daftar mahasiswa yang ditampilkan di form
-                // Jika edit, gabungkan presensi yang tersimpan dengan master kelas
                 $displayStudents = [];
                 if ($editJurnal && !empty($editJurnal['presensi'])) {
                     foreach ($editJurnal['presensi'] as $pRow) {
@@ -991,37 +921,40 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv' && $activeJadwal) {
               ?>
 
               <?php if (empty($displayStudents)): ?>
-                <div style="background:#fef3c7;border:1px solid #fde68a;border-radius:12px;padding:16px;text-align:center;color:#92400e;margin:12px 0">
-                  <i class="fa-solid fa-circle-exclamation" style="font-size:24px;margin-bottom:6px"></i>
-                  <div style="font-weight:700;font-size:14px">Belum Ada Daftar Mahasiswa di Kelas Ini</div>
-                  <p style="font-size:12.5px;margin:6px 0 12px">
-                    Tambahkan mahasiswa ke kelas ini agar presensi bisa langsung diisi. Anda dapat menyalin dan menempel daftar nama dari Excel atau pesan teks.
+                <div style="background:#f8fafc;border:1.5px dashed #cbd5e1;border-radius:12px;padding:28px 16px;text-align:center;color:#64748b;margin:12px 0">
+                  <i class="fa-solid fa-users-slash" style="font-size:32px;margin-bottom:8px;color:#94a3b8"></i>
+                  <div style="font-weight:800;font-size:14px;color:#334155">Belum Ada Mahasiswa Terdaftar di Kelas Ini</div>
+                  <p style="font-size:12.5px;margin:6px auto 0;max-width:440px;line-height:1.5">
+                    Data mahasiswa dikelola terpusat oleh Admin Kampus melalui menu <b>Impor Data Mahasiswa</b>. Hubungi operator akademik untuk mengimpor atau memperbarui daftar mahasiswa kelas <b><?= htmlspecialchars($activeJadwal['kelas']) ?></b>.
                   </p>
-                  <button type="button" class="btn-primary" onclick="openRosterModal()" style="font-size:12.5px;padding:8px 16px;margin:0 auto">
-                    <i class="fa-solid fa-paste"></i> <span>Salin &amp; Tempel Daftar Mahasiswa Sekarang</span>
-                  </button>
                 </div>
               <?php else: ?>
                 <div class="table-container">
                   <table class="table-presensi">
                     <thead>
                       <tr>
-                        <th style="width:40px;text-align:center">No</th>
-                        <th style="width:110px">NIM</th>
-                        <th>Nama Mahasiswa</th>
-                        <th style="width:170px;text-align:center">Status Kehadiran</th>
-                        <th style="width:140px">Keterangan</th>
+                        <th style="width:44px;text-align:center">No</th>
+                        <th style="width:140px;white-space:nowrap">NIM</th>
+                        <th style="min-width:200px">Nama Mahasiswa</th>
+                        <th style="width:180px;text-align:center">Status Kehadiran</th>
+                        <th style="min-width:140px">Keterangan</th>
                       </tr>
                     </thead>
                     <tbody>
                       <?php foreach ($displayStudents as $sIdx => $st): ?>
                         <tr>
-                          <td style="text-align:center;font-weight:700;color:var(--muted)"><?= $sIdx + 1 ?></td>
-                          <td>
-                            <input type="text" name="mhs_nim[]" value="<?= htmlspecialchars($st['nim'] ?? '') ?>" class="form-control" style="padding:4px 8px;font-size:12px;height:30px" placeholder="NIM">
+                          <td style="text-align:center;font-weight:700;color:var(--muted);font-size:13px"><?= $sIdx + 1 ?></td>
+                          <td style="white-space:nowrap">
+                            <input type="hidden" name="mhs_nim[]" value="<?= htmlspecialchars($st['nim'] ?? '') ?>">
+                            <span style="font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:13.5px;font-weight:700;color:#1e293b;letter-spacing:0.5px">
+                              <?= htmlspecialchars($st['nim'] ?: '-') ?>
+                            </span>
                           </td>
                           <td>
-                            <input type="text" name="mhs_nama[]" value="<?= htmlspecialchars($st['nama']) ?>" class="form-control" style="padding:4px 8px;font-size:12px;height:30px;font-weight:600" required>
+                            <input type="hidden" name="mhs_nama[]" value="<?= htmlspecialchars($st['nama']) ?>">
+                            <span style="font-size:14px;font-weight:700;color:#0f172a;display:block;line-height:1.4">
+                              <?= htmlspecialchars($st['nama']) ?>
+                            </span>
                           </td>
                           <td style="text-align:center">
                             <div class="status-group">
@@ -1044,7 +977,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv' && $activeJadwal) {
                             </div>
                           </td>
                           <td>
-                            <input type="text" name="catatan_mhs[]" value="<?= htmlspecialchars($st['catatan'] ?? '') ?>" class="form-control" style="padding:4px 8px;font-size:12px;height:30px" placeholder="-">
+                            <input type="text" name="catatan_mhs[]" value="<?= htmlspecialchars($st['catatan'] ?? '') ?>" class="form-control" style="padding:6px 10px;font-size:12.5px;height:34px" placeholder="Catatan (opsional)">
                           </td>
                         </tr>
                       <?php endforeach; ?>
@@ -1165,113 +1098,6 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv' && $activeJadwal) {
   </div>
 </div>
 
-<!-- MODAL 1: SALIN & TEMPEL ATAU UNGGAH CSV MAHASISWA -->
-<div class="modal-overlay" id="modalRoster">
-  <div class="modal-card">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-      <h3 style="font-size:16px;font-weight:800;color:var(--ink)">
-        <i class="fa-solid fa-users-viewfinder" style="color:var(--brand)"></i> Tambah Mahasiswa Kelas
-      </h3>
-      <button type="button" class="btn-icon" onclick="closeRosterModal()">&times;</button>
-    </div>
-
-    <p style="font-size:13px;color:var(--muted);margin-bottom:12px">
-      Unggah berkas CSV atau tempel daftar nama mahasiswa untuk kelas <b><?= htmlspecialchars($activeJadwal['kelas'] ?? '') ?></b>.
-    </p>
-
-    <form action="presensi_mahasiswa.php" method="POST" enctype="multipart/form-data">
-      <input type="hidden" name="action" value="save_roster">
-      <input type="hidden" name="jadwal_id" value="<?= $activeJadwal['id'] ?? 0 ?>">
-
-      <div class="form-group" style="background:#f8fafc;padding:12px;border:1.5px dashed var(--line);border-radius:10px;margin-bottom:14px">
-        <label for="file_roster_csv" style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--brand-dark)">
-          <i class="fa-solid fa-file-csv" style="color:var(--brand)"></i> <b>Pilihan A: Unggah Berkas CSV Kelas</b>
-        </label>
-        <input type="file" name="file_roster_csv" id="file_roster_csv" accept=".csv" class="form-control" style="padding:6px;background:#fff">
-        <small style="color:var(--muted);display:block;margin-top:4px">Format CSV: <code>nim;nama</code> atau <code>nim;nama;kode_prodi;kelas;tahun_angkatan</code></small>
-      </div>
-
-      <div style="display:flex;align-items:center;gap:10px;margin:12px 0">
-        <div style="flex:1;height:1px;background:var(--line)"></div>
-        <span style="font-size:11px;font-weight:700;color:var(--muted)">ATAU SALIN &amp; TEMPEL TEKS</span>
-        <div style="flex:1;height:1px;background:var(--line)"></div>
-      </div>
-
-      <div class="form-group">
-        <label for="raw_students"><b>Pilihan B: Tempel Daftar Nama Mahasiswa</b> (Satu per baris):</label>
-        <textarea name="raw_students" id="raw_students" class="form-control" rows="5" placeholder="Contoh:
-202301001 - Ahmad Fauzi
-202301002 - Muhammad Ridwan
-atau nama saja:
-Ahmad Fauzi
-Muhammad Ridwan"></textarea>
-      </div>
-
-      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
-        <button type="button" class="btn-secondary" onclick="closeRosterModal()">Batal</button>
-        <button type="submit" class="btn-primary">
-          <i class="fa-solid fa-user-plus"></i> <span>Tambahkan ke Kelas</span>
-        </button>
-      </div>
-    </form>
-  </div>
-</div>
-
-<!-- MODAL 2: KELOLA ROSTER MAHASISWA (LIHAT / HAPUS) -->
-<div class="modal-overlay" id="modalManageRoster">
-  <div class="modal-card">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-      <h3 style="font-size:16px;font-weight:800;color:var(--ink)">
-        <i class="fa-solid fa-users-gear" style="color:var(--brand)"></i> Daftar Master Mahasiswa Kelas
-      </h3>
-      <button type="button" class="btn-icon" onclick="closeManageRosterModal()">&times;</button>
-    </div>
-
-    <div style="max-height:360px;overflow-y:auto;border:1px solid var(--line);border-radius:10px;margin-bottom:16px">
-      <table class="table-presensi">
-        <thead>
-          <tr>
-            <th style="width:30px">#</th>
-            <th>NIM</th>
-            <th>Nama Mahasiswa</th>
-            <th style="width:40px;text-align:center">Hapus</th>
-          </tr>
-        </thead>
-        <tbody>
-          <?php if (empty($rosterMahasiswa)): ?>
-            <tr><td colspan="4" style="text-align:center;color:var(--muted)">Belum ada mahasiswa.</td></tr>
-          <?php else: ?>
-            <?php foreach ($rosterMahasiswa as $rIdx => $rm): ?>
-              <tr>
-                <td style="color:var(--muted)"><?= $rIdx + 1 ?></td>
-                <td style="font-size:12px;color:var(--muted)"><?= htmlspecialchars($rm['nim'] ?: '-') ?></td>
-                <td style="font-weight:600"><?= htmlspecialchars($rm['nama']) ?></td>
-                <td style="text-align:center">
-                  <form action="presensi_mahasiswa.php" method="POST" onsubmit="return confirm('Hapus <?= htmlspecialchars(addslashes($rm['nama'])) ?> dari daftar kelas?')">
-                    <input type="hidden" name="action" value="delete_roster_mhs">
-                    <input type="hidden" name="jadwal_id" value="<?= $activeJadwal['id'] ?? 0 ?>">
-                    <input type="hidden" name="mhs_id" value="<?= $rm['id'] ?>">
-                    <button type="submit" style="background:none;border:none;color:var(--rose);cursor:pointer;padding:4px" title="Hapus">
-                      <i class="fa-solid fa-trash-can"></i>
-                    </button>
-                  </form>
-                </td>
-              </tr>
-            <?php endforeach; ?>
-          <?php endif; ?>
-        </tbody>
-      </table>
-    </div>
-
-    <div style="display:flex;justify-content:space-between;align-items:center">
-      <button type="button" class="btn-secondary" onclick="closeManageRosterModal(); openRosterModal();">
-        <i class="fa-solid fa-plus"></i> <span>Tambah Mahasiswa Lagi</span>
-      </button>
-      <button type="button" class="btn-secondary" onclick="closeManageRosterModal()">Tutup</button>
-    </div>
-  </div>
-</div>
-
 <script>
   function markAllStatus(status) {
     const radios = document.querySelectorAll(`input[type="radio"][value="${status}"]`);
@@ -1279,28 +1105,6 @@ Muhammad Ridwan"></textarea>
       r.checked = true;
     });
   }
-
-  function openRosterModal() {
-    document.getElementById('modalRoster').classList.add('active');
-  }
-  function closeRosterModal() {
-    document.getElementById('modalRoster').classList.remove('active');
-  }
-
-  function openManageRosterModal() {
-    document.getElementById('modalManageRoster').classList.add('active');
-  }
-  function closeManageRosterModal() {
-    document.getElementById('modalManageRoster').classList.remove('active');
-  }
-
-  // Close modals on escape key
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-      closeRosterModal();
-      closeManageRosterModal();
-    }
-  });
 </script>
 
 </body>

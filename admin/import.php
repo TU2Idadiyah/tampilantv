@@ -132,6 +132,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             $error = 'Berkas sementara impor tidak ditemukan. Silakan upload ulang.';
         }
+    } elseif ($action === 'hapus_mahasiswa') {
+        $mhsId = (int)($_POST['mhs_id'] ?? 0);
+        if ($mhsId > 0) {
+            $stmtM = $pdo->prepare("SELECT * FROM `mahasiswa` WHERE id = :id LIMIT 1");
+            $stmtM->execute(['id' => $mhsId]);
+            $m = $stmtM->fetch();
+            if ($m) {
+                $pdo->prepare("DELETE FROM `mahasiswa` WHERE id = :id")->execute(['id' => $mhsId]);
+                // Hapus juga dari kelas_mahasiswa
+                $pdo->prepare("DELETE FROM `kelas_mahasiswa` WHERE nama = :nama AND (nim = :nim OR :nim = '')")->execute(['nama' => $m['nama'], 'nim' => $m['nim']]);
+                // Hitung ulang statistik mahasiswa untuk Layar TV
+                $sqlCounts = "SELECT prodi_id, tahun_angkatan, COUNT(*) as jml FROM `mahasiswa` WHERE periode_id = :pid AND aktif = 1 GROUP BY prodi_id, tahun_angkatan";
+                $stmtC = $pdo->prepare($sqlCounts);
+                $stmtC->execute(['pid' => $m['periode_id']]);
+                $statRows = $stmtC->fetchAll();
+                $pdo->prepare("DELETE FROM `statistik_mahasiswa` WHERE periode_id = :pid")->execute(['pid' => $m['periode_id']]);
+                $insSm = $pdo->prepare("INSERT INTO `statistik_mahasiswa` (periode_id, prodi_id, tahun_angkatan, jumlah, created_at, updated_at) VALUES (:pid, :prodi_id, :angkatan, :jml, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)");
+                foreach ($statRows as $sr) {
+                    $insSm->execute(['pid' => $m['periode_id'], 'prodi_id' => $sr['prodi_id'], 'angkatan' => $sr['tahun_angkatan'], 'jml' => $sr['jml']]);
+                }
+                $message = "Mahasiswa '{$m['nama']}' berhasil dihapus dari sistem.";
+            }
+        }
     }
 }
 ?>
@@ -349,6 +372,129 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     💾 Terapkan <?= $previewData['total_valid'] ?> Data ke Database Sekarang
                 </button>
             </form>
+        <?php endif; ?>
+    </div>
+<?php endif; ?>
+
+<?php if ($jenisImport === 'mahasiswa'): ?>
+    <?php
+    $filterProdi = $_GET['f_prodi'] ?? '';
+    $filterKelas = $_GET['f_kelas'] ?? '';
+    $searchMhs = trim($_GET['q'] ?? '');
+
+    $whereMhs = ["m.periode_id = :pid"];
+    $paramsMhs = ['pid' => $periodeId];
+
+    if ($filterProdi !== '') {
+        $whereMhs[] = "pr.kode = :f_prodi";
+        $paramsMhs['f_prodi'] = $filterProdi;
+    }
+    if ($filterKelas !== '') {
+        $whereMhs[] = "m.kelas = :f_kelas";
+        $paramsMhs['f_kelas'] = $filterKelas;
+    }
+    if ($searchMhs !== '') {
+        $whereMhs[] = "(m.nama LIKE :q OR m.nim LIKE :q OR m.kelas LIKE :q)";
+        $paramsMhs['q'] = '%' . $searchMhs . '%';
+    }
+
+    $sqlMhsList = "SELECT m.*, pr.kode AS prodi_kode, pr.nama AS prodi_nama 
+                   FROM `mahasiswa` m 
+                   JOIN `prodi` pr ON pr.id = m.prodi_id 
+                   WHERE " . implode(' AND ', $whereMhs) . " 
+                   ORDER BY m.kelas ASC, m.nama ASC LIMIT 100";
+    $stmtMhsList = $pdo->prepare($sqlMhsList);
+    $stmtMhsList->execute($paramsMhs);
+    $registeredStudents = $stmtMhsList->fetchAll();
+
+    $stmtTot = $pdo->prepare("SELECT COUNT(*) FROM `mahasiswa` WHERE periode_id = :pid");
+    $stmtTot->execute(['pid' => $periodeId]);
+    $totalRegisteredMhs = (int)$stmtTot->fetchColumn();
+    ?>
+
+    <div class="card" style="margin-top:20px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px">
+            <h3 style="font-size:16px;font-weight:800;color:var(--g-dark);display:flex;align-items:center;gap:8px">
+                <span>🎓 Master Data Mahasiswa Terdaftar di Sistem</span>
+                <span class="badge ok" style="font-size:12px"><?= number_format($totalRegisteredMhs, 0, ',', '.') ?> Total Mahasiswa</span>
+            </h3>
+        </div>
+
+        <form method="GET" style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
+            <input type="hidden" name="tab" value="mahasiswa">
+            <input type="text" name="q" placeholder="Cari Nama / NIM / Kelas..." value="<?= htmlspecialchars($searchMhs) ?>" style="padding:8px 12px;border:1px solid var(--line);border-radius:8px;font-size:13px;min-width:200px">
+            
+            <select name="f_prodi" style="padding:8px;border:1px solid var(--line);border-radius:8px;font-size:13px">
+                <option value="">-- Semua Prodi --</option>
+                <?php foreach ($activeProdiList as $ap): ?>
+                    <option value="<?= htmlspecialchars($ap['kode']) ?>" <?= $filterProdi === $ap['kode'] ? 'selected' : '' ?>>
+                        <?= htmlspecialchars($ap['kode']) ?> - <?= htmlspecialchars($ap['nama']) ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+
+            <select name="f_kelas" style="padding:8px;border:1px solid var(--line);border-radius:8px;font-size:13px">
+                <option value="">-- Semua Kelas --</option>
+                <?php foreach ($activeKelases as $ak): ?>
+                    <option value="<?= htmlspecialchars($ak['kelas']) ?>" <?= $filterKelas === $ak['kelas'] ? 'selected' : '' ?>>
+                        <?= htmlspecialchars($ak['kelas']) ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+
+            <button type="submit" class="btn btn-secondary" style="font-size:13px;padding:8px 14px">🔍 Filter</button>
+            <?php if ($searchMhs !== '' || $filterProdi !== '' || $filterKelas !== ''): ?>
+                <a href="?tab=mahasiswa" class="btn btn-secondary" style="font-size:13px;padding:8px 12px">Reset</a>
+            <?php endif; ?>
+        </form>
+
+        <?php if (empty($registeredStudents)): ?>
+            <div style="background:#f8fafc;padding:20px;border-radius:10px;text-align:center;color:var(--muted);font-size:13.5px">
+                Belum ada data mahasiswa yang terdaftar untuk filter ini. Silakan unggah berkas CSV di atas.
+            </div>
+        <?php else: ?>
+            <div style="overflow-x:auto;border:1px solid var(--line);border-radius:10px">
+                <table style="width:100%;border-collapse:collapse;font-size:13px">
+                    <thead>
+                        <tr style="background:#f8fafc;text-align:left;border-bottom:1px solid var(--line)">
+                            <th style="padding:10px 14px;width:40px">#</th>
+                            <th style="padding:10px 14px;width:130px">NIM</th>
+                            <th style="padding:10px 14px">Nama Mahasiswa</th>
+                            <th style="padding:10px 14px">Program Studi</th>
+                            <th style="padding:10px 14px">Kelas</th>
+                            <th style="padding:10px 14px">Angkatan</th>
+                            <th style="padding:10px 14px;width:60px;text-align:center">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($registeredStudents as $idx => $rm): ?>
+                            <tr style="border-bottom:1px solid #f1f5f9">
+                                <td style="padding:10px 14px;color:var(--muted)"><?= $idx + 1 ?></td>
+                                <td style="padding:10px 14px;font-family:monospace;font-weight:700"><?= htmlspecialchars($rm['nim'] ?: '-') ?></td>
+                                <td style="padding:10px 14px;font-weight:700;color:var(--ink)"><?= htmlspecialchars($rm['nama']) ?></td>
+                                <td style="padding:10px 14px">
+                                    <span class="badge ok" style="font-size:11px;padding:3px 8px"><?= htmlspecialchars($rm['prodi_kode']) ?></span>
+                                </td>
+                                <td style="padding:10px 14px"><b><?= htmlspecialchars($rm['kelas']) ?></b></td>
+                                <td style="padding:10px 14px"><?= htmlspecialchars($rm['tahun_angkatan']) ?></td>
+                                <td style="padding:10px 14px;text-align:center">
+                                    <form method="POST" onsubmit="return confirm('Hapus mahasiswa <?= htmlspecialchars(addslashes($rm['nama'])) ?>?')">
+                                        <input type="hidden" name="action" value="hapus_mahasiswa">
+                                        <input type="hidden" name="jenis" value="mahasiswa">
+                                        <input type="hidden" name="mhs_id" value="<?= $rm['id'] ?>">
+                                        <button type="submit" style="background:none;border:none;color:var(--danger);cursor:pointer;padding:4px;font-size:14px" title="Hapus">
+                                            🗑️
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+            <?php if (count($registeredStudents) >= 100): ?>
+                <small style="color:var(--muted);display:block;margin-top:8px">Menampilkan 100 data pertama. Gunakan kolom pencarian untuk menyaring data spesifik.</small>
+            <?php endif; ?>
         <?php endif; ?>
     </div>
 <?php endif; ?>
