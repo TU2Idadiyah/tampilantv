@@ -230,8 +230,9 @@ function getDosenRekapBulanan(PDO $pdo, int $dosenId, string $bulan): array {
  * Kompatibel 100% dengan SQLite dan MySQL
  */
 function ensurePresensiMahasiswaTables(PDO $pdo): void {
-    static $ensured = false;
-    if ($ensured) return;
+    static $ensured = [];
+    $pdoId = spl_object_id($pdo);
+    if (isset($ensured[$pdoId])) return;
     $driver = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
     try {
         if ($driver === 'sqlite') {
@@ -268,6 +269,19 @@ function ensurePresensiMahasiswaTables(PDO $pdo): void {
                 `nim` TEXT NULL,
                 `nama` TEXT NOT NULL,
                 `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP
+            )");
+
+            $pdo->exec("CREATE TABLE IF NOT EXISTS `mahasiswa` (
+                `id` INTEGER PRIMARY KEY AUTOINCREMENT,
+                `nim` TEXT NULL,
+                `nama` TEXT NOT NULL,
+                `prodi_id` INTEGER NOT NULL,
+                `kelas` TEXT NOT NULL,
+                `tahun_angkatan` INTEGER NOT NULL DEFAULT 2024,
+                `periode_id` INTEGER NOT NULL DEFAULT 1,
+                `aktif` INTEGER NOT NULL DEFAULT 1,
+                `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+                `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP
             )");
         } else {
             $pdo->exec("CREATE TABLE IF NOT EXISTS `jurnal_perkuliahan` (
@@ -309,8 +323,25 @@ function ensurePresensiMahasiswaTables(PDO $pdo): void {
                 `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
                 INDEX `idx_km_jadwal` (`jadwal_id`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+            $pdo->exec("CREATE TABLE IF NOT EXISTS `mahasiswa` (
+                `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                `nim` VARCHAR(50) NULL,
+                `nama` VARCHAR(150) NOT NULL,
+                `prodi_id` BIGINT UNSIGNED NOT NULL,
+                `kelas` VARCHAR(50) NOT NULL,
+                `tahun_angkatan` INT NOT NULL DEFAULT 2024,
+                `periode_id` BIGINT UNSIGNED NOT NULL DEFAULT 1,
+                `aktif` TINYINT(1) NOT NULL DEFAULT 1,
+                `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+                `updated_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+                INDEX `idx_mhs_prodi` (`prodi_id`),
+                INDEX `idx_mhs_kelas` (`kelas`),
+                INDEX `idx_mhs_angkatan` (`tahun_angkatan`),
+                INDEX `idx_mhs_periode` (`periode_id`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
         }
-        $ensured = true;
+        $ensured[$pdoId] = true;
     } catch (Throwable $t) {
         error_log("ensurePresensiMahasiswaTables error: " . $t->getMessage());
     }
@@ -333,13 +364,64 @@ function getDosenClasses(PDO $pdo, int $dosenId): array {
 }
 
 /**
- * Ambil daftar master mahasiswa yang terdaftar di suatu kelas/jadwal
+ * Ambil daftar master mahasiswa yang terdaftar di suatu kelas/jadwal.
+ * Otomatis sinkron dari master tabel `mahasiswa` jika kelas_mahasiswa masih kosong.
  */
 function getKelasMahasiswa(PDO $pdo, int $jadwalId): array {
     ensurePresensiMahasiswaTables($pdo);
+
+    // 1. Cek apakah di kelas_mahasiswa sudah terisi
     $stmt = $pdo->prepare("SELECT * FROM `kelas_mahasiswa` WHERE jadwal_id = :jid ORDER BY nama ASC");
     $stmt->execute(['jid' => $jadwalId]);
-    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    if (!empty($rows)) {
+        return $rows;
+    }
+
+    // 2. Jika belum ada, otomatis cari dan sinkronkan dari master tabel `mahasiswa`
+    try {
+        $stmtJ = $pdo->prepare("SELECT kelas, prodi_id FROM `jadwal_kuliah` WHERE id = :jid LIMIT 1");
+        $stmtJ->execute(['jid' => $jadwalId]);
+        $j = $stmtJ->fetch(PDO::FETCH_ASSOC);
+
+        if ($j && !empty($j['kelas'])) {
+            $stmtMhs = $pdo->prepare("SELECT id, nim, nama FROM `mahasiswa` 
+                WHERE TRIM(LOWER(kelas)) = TRIM(LOWER(:kelas))
+                  AND prodi_id = :prodi_id 
+                  AND aktif = 1 
+                ORDER BY nama ASC");
+            $stmtMhs->execute([
+                'kelas' => $j['kelas'],
+                'prodi_id' => (int)$j['prodi_id']
+            ]);
+            $mhsList = $stmtMhs->fetchAll(PDO::FETCH_ASSOC);
+
+            // Jika tidak ada hasil exact, coba cari berdasarkan nama kelas saja
+            if (empty($mhsList)) {
+                $stmtMhs2 = $pdo->prepare("SELECT id, nim, nama FROM `mahasiswa` 
+                    WHERE TRIM(LOWER(kelas)) = TRIM(LOWER(:kelas)) AND aktif = 1 ORDER BY nama ASC");
+                $stmtMhs2->execute(['kelas' => $j['kelas']]);
+                $mhsList = $stmtMhs2->fetchAll(PDO::FETCH_ASSOC);
+            }
+
+            if (!empty($mhsList)) {
+                $insKm = $pdo->prepare("INSERT INTO `kelas_mahasiswa` (jadwal_id, nim, nama, created_at) VALUES (:jid, :nim, :nama, CURRENT_TIMESTAMP)");
+                foreach ($mhsList as $m) {
+                    $insKm->execute([
+                        'jid' => $jadwalId,
+                        'nim' => $m['nim'],
+                        'nama' => $m['nama']
+                    ]);
+                }
+                $stmt->execute(['jid' => $jadwalId]);
+                return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            }
+        }
+    } catch (Throwable $e) {
+        error_log("getKelasMahasiswa auto-sync error: " . $e->getMessage());
+    }
+
+    return [];
 }
 
 /**

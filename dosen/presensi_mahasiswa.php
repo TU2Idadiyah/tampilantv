@@ -196,12 +196,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    // 3. Tambah / Salin Mahasiswa Massal ke Kelas
+    // 3. Tambah / Salin Mahasiswa Massal atau Unggah CSV ke Kelas
     if ($action === 'save_roster') {
         $jadwalId = (int)($_POST['jadwal_id'] ?? 0);
         $rawText = trim($_POST['raw_students'] ?? '');
-        if ($jadwalId > 0 && !empty($rawText)) {
+        $lines = [];
+
+        if (!empty($_FILES['file_roster_csv']['tmp_name']) && is_uploaded_file($_FILES['file_roster_csv']['tmp_name'])) {
+            $rawContent = file_get_contents($_FILES['file_roster_csv']['tmp_name']);
+            if (str_starts_with($rawContent, "\xEF\xBB\xBF")) $rawContent = substr($rawContent, 3);
+            $lines = preg_split("/\r\n|\n|\r/", trim($rawContent));
+            if (!empty($lines) && (stripos($lines[0], 'nama') !== false || stripos($lines[0], 'nim') !== false)) {
+                array_shift($lines);
+            }
+        } elseif (!empty($rawText)) {
             $lines = explode("\n", str_replace("\r", "", $rawText));
+        }
+
+        if ($jadwalId > 0 && !empty($lines)) {
             $addedCount = 0;
             $checkKm = $pdo->prepare("SELECT id FROM `kelas_mahasiswa` WHERE jadwal_id = :jid AND nama = :nama LIMIT 1");
             $insertKm = $pdo->prepare("INSERT INTO `kelas_mahasiswa` (jadwal_id, nim, nama, created_at) VALUES (:jid, :nim, :nama, CURRENT_TIMESTAMP)");
@@ -212,16 +224,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $nim = '';
                 $nama = $line;
 
-                // Cek format "NIM - Nama" atau "NIM, Nama" atau "NIM\tNama"
-                if (preg_match('/^([0-9\.\-\s]+)[\t\-,;]+(.+)$/', $line, $matches)) {
+                if (strpos($line, ';') !== false || strpos($line, ',') !== false) {
+                    $delim = strpos($line, ';') !== false ? ';' : ',';
+                    $parts = str_getcsv($line, $delim);
+                    if (count($parts) >= 2) {
+                        $nim = trim($parts[0]);
+                        $nama = trim($parts[1]);
+                    }
+                } elseif (preg_match('/^([0-9\.\-\s]+)[\t\-,;]+(.+)$/', $line, $matches)) {
                     $nim = trim($matches[1]);
                     $nama = trim($matches[2]);
                 }
 
-                $checkKm->execute(['jid' => $jadwalId, 'nama' => $nama]);
-                if (!$checkKm->fetch()) {
-                    $insertKm->execute(['jid' => $jadwalId, 'nim' => $nim, 'nama' => $nama]);
-                    $addedCount++;
+                if ($nama !== '') {
+                    $checkKm->execute(['jid' => $jadwalId, 'nama' => $nama]);
+                    if (!$checkKm->fetch()) {
+                        $insertKm->execute(['jid' => $jadwalId, 'nim' => $nim, 'nama' => $nama]);
+                        $addedCount++;
+                    }
                 }
             }
             header("Location: presensi_mahasiswa.php?jadwal_id={$jadwalId}&msg=roster_added&count={$addedCount}");
@@ -1145,33 +1165,46 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv' && $activeJadwal) {
   </div>
 </div>
 
-<!-- MODAL 1: SALIN & TEMPEL ROSTER MAHASISWA MASSAL -->
+<!-- MODAL 1: SALIN & TEMPEL ATAU UNGGAH CSV MAHASISWA -->
 <div class="modal-overlay" id="modalRoster">
   <div class="modal-card">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
       <h3 style="font-size:16px;font-weight:800;color:var(--ink)">
-        <i class="fa-solid fa-users-viewfinder" style="color:var(--brand)"></i> Tambah / Salin Mahasiswa Massal
+        <i class="fa-solid fa-users-viewfinder" style="color:var(--brand)"></i> Tambah Mahasiswa Kelas
       </h3>
       <button type="button" class="btn-icon" onclick="closeRosterModal()">&times;</button>
     </div>
 
     <p style="font-size:13px;color:var(--muted);margin-bottom:12px">
-      Salin daftar nama mahasiswa dari Excel, Word, atau pesan WhatsApp, lalu tempel pada kotak di bawah. Satu nama per baris.
+      Unggah berkas CSV atau tempel daftar nama mahasiswa untuk kelas <b><?= htmlspecialchars($activeJadwal['kelas'] ?? '') ?></b>.
     </p>
 
-    <form action="presensi_mahasiswa.php" method="POST">
+    <form action="presensi_mahasiswa.php" method="POST" enctype="multipart/form-data">
       <input type="hidden" name="action" value="save_roster">
       <input type="hidden" name="jadwal_id" value="<?= $activeJadwal['id'] ?? 0 ?>">
 
+      <div class="form-group" style="background:#f8fafc;padding:12px;border:1.5px dashed var(--line);border-radius:10px;margin-bottom:14px">
+        <label for="file_roster_csv" style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--brand-dark)">
+          <i class="fa-solid fa-file-csv" style="color:var(--brand)"></i> <b>Pilihan A: Unggah Berkas CSV Kelas</b>
+        </label>
+        <input type="file" name="file_roster_csv" id="file_roster_csv" accept=".csv" class="form-control" style="padding:6px;background:#fff">
+        <small style="color:var(--muted);display:block;margin-top:4px">Format CSV: <code>nim;nama</code> atau <code>nim;nama;kode_prodi;kelas;tahun_angkatan</code></small>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:10px;margin:12px 0">
+        <div style="flex:1;height:1px;background:var(--line)"></div>
+        <span style="font-size:11px;font-weight:700;color:var(--muted)">ATAU SALIN &amp; TEMPEL TEKS</span>
+        <div style="flex:1;height:1px;background:var(--line)"></div>
+      </div>
+
       <div class="form-group">
-        <label for="raw_students">Tempel Daftar Nama Mahasiswa (Format: <code>NIM - Nama</code> atau <code>Nama Saja</code>):</label>
-        <textarea name="raw_students" id="raw_students" class="form-control" rows="8" placeholder="Contoh:
+        <label for="raw_students"><b>Pilihan B: Tempel Daftar Nama Mahasiswa</b> (Satu per baris):</label>
+        <textarea name="raw_students" id="raw_students" class="form-control" rows="5" placeholder="Contoh:
 202301001 - Ahmad Fauzi
 202301002 - Muhammad Ridwan
-202301003 - Siti Nurhaliza
-atau cukup nama saja:
+atau nama saja:
 Ahmad Fauzi
-Muhammad Ridwan" required></textarea>
+Muhammad Ridwan"></textarea>
       </div>
 
       <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">

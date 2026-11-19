@@ -28,14 +28,35 @@ if (isset($_GET['download_template'])) {
         $tahunSekarang = (int)date('Y');
         header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename="template_data_mahasiswa.csv"');
-        echo "kode_prodi;tahun_angkatan;jumlah\n";
-        if (!empty($prodiSample)) {
-            foreach ($prodiSample as $ps) {
-                echo "{$ps['kode']};{$tahunSekarang};120\n";
+        echo "nim;nama;kode_prodi;kelas;tahun_angkatan\n";
+        
+        // Ambil contoh kombinasi prodi & kelas dari jadwal kuliah yang aktif
+        $sampleJadwal = $pdo->query("SELECT j.kelas, pr.kode as kode_prodi 
+            FROM `jadwal_kuliah` j 
+            JOIN `prodi` pr ON pr.id = j.prodi_id 
+            WHERE j.aktif = 1 
+            GROUP BY j.kelas, pr.kode 
+            ORDER BY pr.kode ASC, j.kelas ASC 
+            LIMIT 4")->fetchAll();
+
+        if (!empty($sampleJadwal)) {
+            $sampleNames = ['Ahmad Fauzi', 'Muhammad Ridwan', 'Siti Nurhaliza', 'Fathur Rahman', 'Zainab Al-Kubro', 'Nur Halimah'];
+            $i = 0;
+            foreach ($sampleJadwal as $sj) {
+                $p = $sj['kode_prodi'];
+                $k = $sj['kelas'];
+                $nim1 = $tahunSekarang . sprintf('%05d', ($i * 2 + 1));
+                $nim2 = $tahunSekarang . sprintf('%05d', ($i * 2 + 2));
+                $n1 = $sampleNames[($i * 2) % count($sampleNames)];
+                $n2 = $sampleNames[($i * 2 + 1) % count($sampleNames)];
+                echo "{$nim1};{$n1};{$p};{$k};{$tahunSekarang}\n";
+                echo "{$nim2};{$n2};{$p};{$k};{$tahunSekarang}\n";
+                $i++;
             }
         } else {
-            echo "{$p1};{$tahunSekarang};150\n";
-            echo "{$p2};{$tahunSekarang};110\n";
+            echo "202300001;Ahmad Fauzi;{$p1};{$p1}-01;{$tahunSekarang}\n";
+            echo "202300002;Muhammad Ridwan;{$p1};{$p1}-01;{$tahunSekarang}\n";
+            echo "202300003;Siti Nurhaliza;{$p2};{$p2}-01;{$tahunSekarang}\n";
         }
         exit;
     }
@@ -124,13 +145,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             📚 Impor Jadwal Kuliah
         </a>
         <a href="?tab=mahasiswa" class="btn <?= $jenisImport === 'mahasiswa' ? '' : 'btn-secondary' ?>">
-            🎓 Impor Data Mahasiswa
+            🎓 Impor Data Mahasiswa (Presensi &amp; TV)
         </a>
     </div>
 
     <div style="margin-top:20px">
         <h3>
-            <?= $jenisImport === 'jadwal' ? 'Unggah Berkas CSV Jadwal Kuliah' : 'Unggah Berkas CSV Jumlah Mahasiswa' ?>
+            <?= $jenisImport === 'jadwal' ? 'Unggah Berkas CSV Jadwal Kuliah' : 'Unggah Berkas CSV Data Mahasiswa (Presensi Dosen &amp; Statistik TV)' ?>
             <small style="font-size:13px;font-weight:600;color:var(--muted)">
                 (Periode Aktif: <b><?= htmlspecialchars($activePeriode['kode'] ?? 'N/A') ?></b>)
             </small>
@@ -201,6 +222,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <?php endif; ?>
             </div>
         </div>
+    <?php else: ?>
+        <?php
+        $activeKelases = $pdo->query("SELECT DISTINCT j.kelas, pr.kode as prodi_kode 
+            FROM `jadwal_kuliah` j 
+            JOIN `prodi` pr ON pr.id = j.prodi_id 
+            WHERE j.aktif = 1 
+            ORDER BY pr.kode ASC, j.kelas ASC")->fetchAll();
+        ?>
+        <div style="margin-top:16px;border-top:1px dashed var(--line);padding-top:14px">
+            <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px">
+                FORMAT KOLOM CSV: <code>nim;nama;kode_prodi;kelas;tahun_angkatan</code>
+            </div>
+            <p style="font-size:12px;color:var(--muted);margin-bottom:8px">
+                Gunakan nama kelas (kolom <code>kelas</code>) yang sama dengan kelas pada jadwal perkuliahan agar mahasiswa otomatis terhubung ke presensi dosen:
+            </p>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;max-height:90px;overflow-y:auto;padding:8px;background:#fff;border-radius:8px;border:1px solid var(--line)">
+                <?php if (empty($activeKelases)): ?>
+                    <span style="font-size:12px;color:var(--muted)">Belum ada kelas jadwal terdaftar.</span>
+                <?php else: ?>
+                    <?php foreach ($activeKelases as $ak): ?>
+                        <span class="badge ok" style="font-size:11px;padding:3px 8px">
+                            <b><?= htmlspecialchars($ak['kelas']) ?></b> (<?= htmlspecialchars($ak['prodi_kode']) ?>)
+                        </span>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </div>
+        </div>
     <?php endif; ?>
 </div>
 
@@ -235,6 +283,55 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <li>Baris <?= $w['baris'] ?>: <?= htmlspecialchars($w['pesan']) ?></li>
                     <?php endforeach; ?>
                 </ul>
+            </div>
+        <?php endif; ?>
+
+        <?php if (!empty($previewData['valid_rows']) && ($previewData['format'] ?? '') === 'detail'): ?>
+            <div style="margin:16px 0">
+                <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap">
+                    <span class="badge ok" style="padding:6px 12px;font-size:12.5px">
+                        <b><?= count($previewData['valid_rows']) ?></b> Mahasiswa
+                    </span>
+                    <span class="badge ok" style="padding:6px 12px;font-size:12.5px;background:#e0f2fe;color:#0284c7">
+                        <b><?= count($previewData['rekap_kelas'] ?? []) ?></b> Kelas
+                    </span>
+                    <span class="badge ok" style="padding:6px 12px;font-size:12.5px;background:#fef3c7;color:#b45309">
+                        <b><?= count($previewData['rekap_prodi'] ?? []) ?></b> Prodi
+                    </span>
+                </div>
+
+                <div style="max-height:260px;overflow-y:auto;border:1px solid var(--line);border-radius:10px">
+                    <table style="width:100%;border-collapse:collapse;font-size:12.5px">
+                        <thead>
+                            <tr style="background:#f8fafc;text-align:left;border-bottom:1px solid var(--line)">
+                                <th style="padding:8px 12px;width:35px">#</th>
+                                <th style="padding:8px 12px">NIM</th>
+                                <th style="padding:8px 12px">Nama Mahasiswa</th>
+                                <th style="padding:8px 12px">Prodi</th>
+                                <th style="padding:8px 12px">Kelas</th>
+                                <th style="padding:8px 12px">Angkatan</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php 
+                            $sampleRows = array_slice($previewData['valid_rows'], 0, 15);
+                            foreach ($sampleRows as $sIdx => $sr): 
+                            ?>
+                                <tr style="border-bottom:1px solid #f1f5f9">
+                                    <td style="padding:6px 12px;color:var(--muted)"><?= $sIdx + 1 ?></td>
+                                    <td style="padding:6px 12px;font-family:monospace"><?= htmlspecialchars($sr['nim'] ?: '-') ?></td>
+                                    <td style="padding:6px 12px;font-weight:600"><?= htmlspecialchars($sr['nama']) ?></td>
+                                    <td style="padding:6px 12px"><span class="badge ok" style="font-size:11px;padding:2px 6px"><?= htmlspecialchars($sr['kode_prodi']) ?></span></td>
+                                    <td style="padding:6px 12px"><b><?= htmlspecialchars($sr['kelas']) ?></b></td>
+                                    <td style="padding:6px 12px"><?= htmlspecialchars($sr['tahun_angkatan']) ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+                <?php if (count($previewData['valid_rows']) > 15): ?>
+                    <small style="color:var(--muted);display:block;margin-top:6px">... dan <?= count($previewData['valid_rows']) - 15 ?> baris mahasiswa lainnya.</small>
+                <?php endif; ?>
             </div>
         <?php endif; ?>
 

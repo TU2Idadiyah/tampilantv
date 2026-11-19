@@ -298,6 +298,20 @@ class DisplayStateService
                    JOIN `periode_akademik` pa ON pa.id = sm.periode_id AND pa.aktif = 1
                    ORDER BY pr.urutan ASC, sm.tahun_angkatan ASC";
         $mhsRows = $this->pdo->query($sqlMhs)->fetchAll();
+
+        // Fallback: jika statistik_mahasiswa kosong, hitung langsung dari master data mahasiswa
+        if (empty($mhsRows)) {
+            try {
+                $sqlFallback = "SELECT pr.nama AS prodi_nama, m.tahun_angkatan, COUNT(*) as jumlah
+                                FROM `mahasiswa` m
+                                JOIN `prodi` pr ON pr.id = m.prodi_id AND pr.aktif = 1
+                                JOIN `periode_akademik` pa ON pa.id = m.periode_id AND pa.aktif = 1
+                                WHERE m.aktif = 1
+                                GROUP BY pr.nama, pr.urutan, m.tahun_angkatan
+                                ORDER BY pr.urutan ASC, m.tahun_angkatan ASC";
+                $mhsRows = $this->pdo->query($sqlFallback)->fetchAll();
+            } catch (Throwable $e) {}
+        }
         $angkatanSet = [];
         $prodiGroup = [];
         $grandTotal = 0;

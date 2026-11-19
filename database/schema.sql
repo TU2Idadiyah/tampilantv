@@ -328,5 +328,26 @@ CREATE TABLE `kelas_mahasiswa` (
     CONSTRAINT `fk_km_jadwal` FOREIGN KEY (`jadwal_id`) REFERENCES `jadwal_kuliah` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- 20. Tabel Master Mahasiswa Kampus (Untuk Presensi Kelas & Statistik TV)
+DROP TABLE IF EXISTS `mahasiswa`;
+CREATE TABLE `mahasiswa` (
+    `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `nim` VARCHAR(50) NULL,
+    `nama` VARCHAR(150) NOT NULL,
+    `prodi_id` BIGINT UNSIGNED NOT NULL,
+    `kelas` VARCHAR(50) NOT NULL,
+    `tahun_angkatan` INT NOT NULL DEFAULT 2024,
+    `periode_id` BIGINT UNSIGNED NOT NULL DEFAULT 1,
+    `aktif` TINYINT(1) NOT NULL DEFAULT 1,
+    `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX `idx_mhs_prodi` (`prodi_id`),
+    INDEX `idx_mhs_kelas` (`kelas`),
+    INDEX `idx_mhs_angkatan` (`tahun_angkatan`),
+    INDEX `idx_mhs_periode` (`periode_id`),
+    CONSTRAINT `fk_mhs_prodi` FOREIGN KEY (`prodi_id`) REFERENCES `prodi` (`id`) ON DELETE RESTRICT,
+    CONSTRAINT `fk_mhs_periode` FOREIGN KEY (`periode_id`) REFERENCES `periode_akademik` (`id`) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 SET FOREIGN_KEY_CHECKS = 1;
 
