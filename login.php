@@ -210,19 +210,31 @@ try {
                 <div class="arrow"><i class="fa-solid fa-arrow-right"></i></div>
             </a>
 
-            <!-- 3. Presensi Pengurus -->
+            <!-- 3. Presensi Pengurus (Mobile) -->
             <a href="absen/index.php" class="portal-card">
                 <div class="portal-icon pi-absen">
-                    <i class="fa-solid fa-qrcode"></i>
+                    <i class="fa-solid fa-mobile-screen-button"></i>
                 </div>
                 <div class="portal-info">
-                    <b>Presensi Pengurus &amp; Tendik <span class="portal-badge" style="background:#fef3c7;color:#b45309">Staf / Tendik</span></b>
-                    <small>Pindai (scan) QR code kehadiran masuk dan pulang dari HP masing-masing.</small>
+                    <b>Web HP Presensi Pengurus <span class="portal-badge" style="background:#fef3c7;color:#b45309">Staf / Tendik</span></b>
+                    <small>Portal HP untuk pindai (scan) QR code kehadiran masuk dan pulang dari HP masing-masing.</small>
                 </div>
                 <div class="arrow"><i class="fa-solid fa-arrow-right"></i></div>
             </a>
 
-            <!-- 4. Layar TV Kiosk -->
+            <!-- 4. Layar Khusus Absen Pengurus (Kiosk QR Interaktif) -->
+            <a href="absen_pengurus.php" class="portal-card" style="border-color:#86efac;background:linear-gradient(to right, #ffffff, #f0fdf4)">
+                <div class="portal-icon" style="background:#dcfce7;color:#15803d">
+                    <i class="fa-solid fa-id-card-clip"></i>
+                </div>
+                <div class="portal-info">
+                    <b>Layar Khusus Absen Pengurus <span class="portal-badge" style="background:#dcfce7;color:#15803d">Kiosk QR Interaktif</span></b>
+                    <small>Daftar nama pengurus di sebelah kiri &amp; kode QR di sebelah kanan ketika nama di-klik.</small>
+                </div>
+                <div class="arrow"><i class="fa-solid fa-arrow-right"></i></div>
+            </a>
+
+            <!-- 5. Layar TV Kiosk -->
             <a href="index.html" class="portal-card">
                 <div class="portal-icon pi-tv">
                     <i class="fa-solid fa-tv"></i>

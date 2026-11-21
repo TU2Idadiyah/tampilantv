@@ -114,6 +114,7 @@ try {
             <div class="nav-label">Menu Utama</div>
             <a href="index.php" class="<?= $currentScript === 'index.php' ? 'active' : '' ?>">📊 Dashboard</a>
             <a href="absensi.php" class="<?= $currentScript === 'absensi.php' ? 'active' : '' ?>">📋 Presensi Pengurus</a>
+            <a href="../absen_pengurus.php" target="_blank" style="color:var(--g-dark);font-weight:700">🔲 Layar Absen Pengurus &nearr;</a>
             <a href="absensi_dosen.php" class="<?= $currentScript === 'absensi_dosen.php' ? 'active' : '' ?>">🎓 Rekap Presensi Dosen</a>
             <a href="absensi_mahasiswa.php" class="<?= $currentScript === 'absensi_mahasiswa.php' ? 'active' : '' ?>">🧑‍🎓 Rekap Presensi Mahasiswa</a>
             <a href="pengurus.php" class="<?= $currentScript === 'pengurus.php' ? 'active' : '' ?>">👥 Kelola Pengurus & Foto</a>
@@ -166,6 +167,7 @@ try {
             </div>
             <div class="top-actions">
                 <a href="../login.php" class="btn-kiosk" style="background:#f1f5f9;color:#334155">🚪 Pusat Portal</a>
+                <a href="../absen_pengurus.php" target="_blank" class="btn-kiosk" style="background:#dcfce7;color:#166534">🔲 Layar QR Pengurus</a>
                 <a href="../index.html" target="_blank" class="btn-kiosk">📺 Pratinjau Layar TV</a>
                 <a href="../dosen/index.php" target="_blank" class="btn-kiosk" style="background:#e0f2fe;color:#0369a1">👨‍🏫 Portal Dosen</a>
                 <a href="../absen/index.php" target="_blank" class="btn-kiosk" style="background:#f0fdf4;color:#166534">📱 Web HP Absen</a>

@@ -1,6 +1,6 @@
 {
-    "versi": "1.0.0-20261119",
-    "waktu_server": "2026-11-19T08:57:38+07:00",
+    "versi": "1.0.0-20261121",
+    "waktu_server": "2026-11-21T09:02:12+07:00",
     "kampus": {
         "nama": "STAI SIDOGIRI",
         "subjudul": "Sekolah Tinggi Agama Islam Sidogiri · Pasuruan, Jawa Timur",
@@ -16,7 +16,7 @@
         "spot_ms": 1300
     },
     "cuaca": {
-        "suhu_c": 30,
+        "suhu_c": 32,
         "kode": 2,
         "usang": false
     },
@@ -217,360 +217,8 @@
             "total_durasi_formatted": null
         }
     ],
-    "dosen_hari_ini": [
-        {
-            "id": 12,
-            "nama": "Huda Nur Aziz, S.Psi, M.Psi, M.M., Psikolog",
-            "foto_url": null,
-            "mata_kuliah": "Filsafat Ilmu dan Logika",
-            "ruang": "STAI 02",
-            "jam_mulai": "16:30",
-            "jam_selesai": "17:30",
-            "status_kehadiran": "menunggu",
-            "mode_kuliah": null,
-            "status_label": "Belum Konfirmasi",
-            "jam_ganti": null,
-            "catatan": null
-        },
-        {
-            "id": 17,
-            "nama": "M. Syaifuddin, S.Pd, M.Psi",
-            "foto_url": null,
-            "mata_kuliah": "Islam dan Sains",
-            "ruang": "STAI 01",
-            "jam_mulai": "16:30",
-            "jam_selesai": "17:30",
-            "status_kehadiran": "menunggu",
-            "mode_kuliah": null,
-            "status_label": "Belum Konfirmasi",
-            "jam_ganti": null,
-            "catatan": null
-        },
-        {
-            "id": 22,
-            "nama": "Muthmainnah, S.Psi, S.Pd.I, M.Psi Psikolog",
-            "foto_url": null,
-            "mata_kuliah": "Psikometri",
-            "ruang": "STAI 04",
-            "jam_mulai": "16:30",
-            "jam_selesai": "17:30",
-            "status_kehadiran": "menunggu",
-            "mode_kuliah": null,
-            "status_label": "Belum Konfirmasi",
-            "jam_ganti": null,
-            "catatan": null
-        },
-        {
-            "id": 14,
-            "nama": "M. Masykur, S.Pd.I, M.Pd.",
-            "foto_url": "storage/dosen/dosen_1793881789_dsn8.png",
-            "mata_kuliah": "Kewarganegaraan",
-            "ruang": "STAI 03",
-            "jam_mulai": "16:30",
-            "jam_selesai": "17:30",
-            "status_kehadiran": "menunggu",
-            "mode_kuliah": null,
-            "status_label": "Belum Konfirmasi",
-            "jam_ganti": null,
-            "catatan": null
-        },
-        {
-            "id": 8,
-            "nama": "Abd Hafid, SEI, M.SEI.",
-            "foto_url": null,
-            "mata_kuliah": "Studi Kelayakan Bisnis",
-            "ruang": "Meet Lt.1",
-            "jam_mulai": "16:30",
-            "jam_selesai": "17:30",
-            "status_kehadiran": "menunggu",
-            "mode_kuliah": null,
-            "status_label": "Belum Konfirmasi",
-            "jam_ganti": null,
-            "catatan": null
-        },
-        {
-            "id": 11,
-            "nama": "Fatimatul Laily, S.Psi, M.Psi, Psikolog",
-            "foto_url": null,
-            "mata_kuliah": "Psikologi Abnormal",
-            "ruang": "STAI 04",
-            "jam_mulai": "18:00",
-            "jam_selesai": "19:00",
-            "status_kehadiran": "menunggu",
-            "mode_kuliah": null,
-            "status_label": "Belum Konfirmasi",
-            "jam_ganti": null,
-            "catatan": null
-        },
-        {
-            "id": 18,
-            "nama": "M. Syamsul Arifin, S.Psi, M.Psi, M.H., Psikolog",
-            "foto_url": "storage/dosen/dosen_1793881789_dsn12.png",
-            "mata_kuliah": "Seminar Proposal",
-            "ruang": "Meet Lt.2",
-            "jam_mulai": "18:00",
-            "jam_selesai": "19:00",
-            "status_kehadiran": "menunggu",
-            "mode_kuliah": null,
-            "status_label": "Belum Konfirmasi",
-            "jam_ganti": null,
-            "catatan": null
-        },
-        {
-            "id": 10,
-            "nama": "Dr. M. Mahbubi Ali, SEI, C.I.F.P., Ph.D.",
-            "foto_url": "storage/dosen/dosen_1793881789_dsn4.png",
-            "mata_kuliah": "Bisnis Internasional",
-            "ruang": "Meet Lt.1",
-            "jam_mulai": "18:00",
-            "jam_selesai": "19:00",
-            "status_kehadiran": "menunggu",
-            "mode_kuliah": null,
-            "status_label": "Belum Konfirmasi",
-            "jam_ganti": null,
-            "catatan": null
-        }
-    ],
-    "jadwal_hari_ini": [
-        {
-            "id": 33,
-            "jam_mulai": "16:30",
-            "jam_selesai": "17:30",
-            "mata_kuliah": "Filsafat Ilmu dan Logika",
-            "dosen": "Huda Nur Aziz, S.Psi, M.Psi, M.M., Psikolog",
-            "ruang": "STAI 02",
-            "kelas": "PSI-01",
-            "status_kehadiran": "menunggu",
-            "mode_kuliah": null,
-            "status_label": "Belum Konfirmasi",
-            "jam_ganti": null,
-            "catatan": null
-        },
-        {
-            "id": 36,
-            "jam_mulai": "16:30",
-            "jam_selesai": "17:30",
-            "mata_kuliah": "Islam dan Sains",
-            "dosen": "M. Syaifuddin, S.Pd, M.Psi",
-            "ruang": "STAI 01",
-            "kelas": "PSI-03",
-            "status_kehadiran": "menunggu",
-            "mode_kuliah": null,
-            "status_label": "Belum Konfirmasi",
-            "jam_ganti": null,
-            "catatan": null
-        },
-        {
-            "id": 39,
-            "jam_mulai": "16:30",
-            "jam_selesai": "17:30",
-            "mata_kuliah": "Psikometri",
-            "dosen": "Muthmainnah, S.Psi, S.Pd.I, M.Psi Psikolog",
-            "ruang": "STAI 04",
-            "kelas": "PSI-05",
-            "status_kehadiran": "menunggu",
-            "mode_kuliah": null,
-            "status_label": "Belum Konfirmasi",
-            "jam_ganti": null,
-            "catatan": null
-        },
-        {
-            "id": 44,
-            "jam_mulai": "16:30",
-            "jam_selesai": "17:30",
-            "mata_kuliah": "Kewarganegaraan",
-            "dosen": "M. Masykur, S.Pd.I, M.Pd.",
-            "ruang": "STAI 03",
-            "kelas": "MBS-03",
-            "status_kehadiran": "menunggu",
-            "mode_kuliah": null,
-            "status_label": "Belum Konfirmasi",
-            "jam_ganti": null,
-            "catatan": null
-        },
-        {
-            "id": 47,
-            "jam_mulai": "16:30",
-            "jam_selesai": "17:30",
-            "mata_kuliah": "Studi Kelayakan Bisnis",
-            "dosen": "Abd Hafid, SEI, M.SEI.",
-            "ruang": "Meet Lt.1",
-            "kelas": "MBS-05",
-            "status_kehadiran": "menunggu",
-            "mode_kuliah": null,
-            "status_label": "Belum Konfirmasi",
-            "jam_ganti": null,
-            "catatan": null
-        },
-        {
-            "id": 34,
-            "jam_mulai": "18:00",
-            "jam_selesai": "19:00",
-            "mata_kuliah": "Sosiologi",
-            "dosen": "Muthmainnah, S.Psi, S.Pd.I, M.Psi Psikolog",
-            "ruang": "STAI 02",
-            "kelas": "PSI-01",
-            "status_kehadiran": "menunggu",
-            "mode_kuliah": null,
-            "status_label": "Belum Konfirmasi",
-            "jam_ganti": null,
-            "catatan": null
-        },
-        {
-            "id": 37,
-            "jam_mulai": "18:00",
-            "jam_selesai": "19:00",
-            "mata_kuliah": "Psikologi Industri & Organisasi",
-            "dosen": "Huda Nur Aziz, S.Psi, M.Psi, M.M., Psikolog",
-            "ruang": "STAI 01",
-            "kelas": "PSI-03",
-            "status_kehadiran": "menunggu",
-            "mode_kuliah": null,
-            "status_label": "Belum Konfirmasi",
-            "jam_ganti": null,
-            "catatan": null
-        },
-        {
-            "id": 40,
-            "jam_mulai": "18:00",
-            "jam_selesai": "19:00",
-            "mata_kuliah": "Psikologi Abnormal",
-            "dosen": "Fatimatul Laily, S.Psi, M.Psi, Psikolog",
-            "ruang": "STAI 04",
-            "kelas": "PSI-05",
-            "status_kehadiran": "menunggu",
-            "mode_kuliah": null,
-            "status_label": "Belum Konfirmasi",
-            "jam_ganti": null,
-            "catatan": null
-        },
-        {
-            "id": 42,
-            "jam_mulai": "18:00",
-            "jam_selesai": "19:00",
-            "mata_kuliah": "Seminar Proposal",
-            "dosen": "M. Syamsul Arifin, S.Psi, M.Psi, M.H., Psikolog",
-            "ruang": "Meet Lt.2",
-            "kelas": "PSI-07",
-            "status_kehadiran": "menunggu",
-            "mode_kuliah": null,
-            "status_label": "Belum Konfirmasi",
-            "jam_ganti": null,
-            "catatan": null
-        },
-        {
-            "id": 45,
-            "jam_mulai": "18:00",
-            "jam_selesai": "19:00",
-            "mata_kuliah": "Statistik 1",
-            "dosen": "Abd Hafid, SEI, M.SEI.",
-            "ruang": "STAI 03",
-            "kelas": "MBS-03",
-            "status_kehadiran": "menunggu",
-            "mode_kuliah": null,
-            "status_label": "Belum Konfirmasi",
-            "jam_ganti": null,
-            "catatan": null
-        },
-        {
-            "id": 48,
-            "jam_mulai": "18:00",
-            "jam_selesai": "19:00",
-            "mata_kuliah": "Bisnis Internasional",
-            "dosen": "Dr. M. Mahbubi Ali, SEI, C.I.F.P., Ph.D.",
-            "ruang": "Meet Lt.1",
-            "kelas": "MBS-05",
-            "status_kehadiran": "menunggu",
-            "mode_kuliah": null,
-            "status_label": "Belum Konfirmasi",
-            "jam_ganti": null,
-            "catatan": null
-        },
-        {
-            "id": 35,
-            "jam_mulai": "19:30",
-            "jam_selesai": "20:30",
-            "mata_kuliah": "Pengantar Studi Islam",
-            "dosen": "M. Syaifuddin, S.Pd, M.Psi",
-            "ruang": "STAI 02",
-            "kelas": "PSI-01",
-            "status_kehadiran": "menunggu",
-            "mode_kuliah": null,
-            "status_label": "Belum Konfirmasi",
-            "jam_ganti": null,
-            "catatan": null
-        },
-        {
-            "id": 38,
-            "jam_mulai": "19:30",
-            "jam_selesai": "20:30",
-            "mata_kuliah": "Dasar-Dasar Asesmen Psikologi",
-            "dosen": "Fatimatul Laily, S.Psi, M.Psi, Psikolog",
-            "ruang": "STAI 01",
-            "kelas": "PSI-03",
-            "status_kehadiran": "menunggu",
-            "mode_kuliah": null,
-            "status_label": "Belum Konfirmasi",
-            "jam_ganti": null,
-            "catatan": null
-        },
-        {
-            "id": 41,
-            "jam_mulai": "19:30",
-            "jam_selesai": "20:30",
-            "mata_kuliah": "Tes Inteligensi",
-            "dosen": "Huda Nur Aziz, S.Psi, M.Psi, M.M., Psikolog",
-            "ruang": "STAI 04",
-            "kelas": "PSI-05",
-            "status_kehadiran": "menunggu",
-            "mode_kuliah": null,
-            "status_label": "Belum Konfirmasi",
-            "jam_ganti": null,
-            "catatan": null
-        },
-        {
-            "id": 43,
-            "jam_mulai": "19:30",
-            "jam_selesai": "20:30",
-            "mata_kuliah": "Psikologi Pesantren",
-            "dosen": "M. Syamsul Arifin, S.Psi, M.Psi, M.H., Psikolog",
-            "ruang": "Meet Lt.2",
-            "kelas": "PSI-07",
-            "status_kehadiran": "menunggu",
-            "mode_kuliah": null,
-            "status_label": "Belum Konfirmasi",
-            "jam_ganti": null,
-            "catatan": null
-        },
-        {
-            "id": 46,
-            "jam_mulai": "19:30",
-            "jam_selesai": "20:30",
-            "mata_kuliah": "Manajemen Keuangan Syariah",
-            "dosen": "Dr. M. Mahbubi Ali, SEI, C.I.F.P., Ph.D.",
-            "ruang": "STAI 03",
-            "kelas": "MBS-03",
-            "status_kehadiran": "menunggu",
-            "mode_kuliah": null,
-            "status_label": "Belum Konfirmasi",
-            "jam_ganti": null,
-            "catatan": null
-        },
-        {
-            "id": 49,
-            "jam_mulai": "19:30",
-            "jam_selesai": "20:30",
-            "mata_kuliah": "Etika Bisnis Islam",
-            "dosen": "Abd Hafid, SEI, M.SEI.",
-            "ruang": "Meet Lt.1",
-            "kelas": "MBS-07",
-            "status_kehadiran": "menunggu",
-            "mode_kuliah": null,
-            "status_label": "Belum Konfirmasi",
-            "jam_ganti": null,
-            "catatan": null
-        }
-    ],
+    "dosen_hari_ini": [],
+    "jadwal_hari_ini": [],
     "mahasiswa": {
         "angkatan": [
             2023,
@@ -585,7 +233,7 @@
                     2,
                     51,
                     46,
-                    175
+                    190
                 ]
             },
             {
@@ -594,11 +242,11 @@
                     15,
                     1,
                     51,
-                    130
+                    140
                 ]
             }
         ],
-        "total": 471
+        "total": 496
     },
     "agenda": [
         {
