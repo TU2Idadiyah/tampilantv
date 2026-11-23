@@ -20,7 +20,294 @@ ensurePresensiMahasiswaTables($pdo);
 
 $dosen = getActiveDosen();
 if (!$dosen) {
-    header("Location: index.php");
+    // Ambil daftar dosen untuk pilihan masuk langsung di halaman ini
+    $allDosen = [];
+    try {
+        $allDosen = $pdo->query("SELECT id, kode_nidn, nama, foto_path FROM `dosen` WHERE aktif = 1 AND deleted_at IS NULL ORDER BY nama ASC")->fetchAll();
+    } catch (Exception $e) {}
+
+    // Ambil info kampus & logo
+    $campusName = 'STAI SIDOGIRI';
+    $campusSub = 'Sekolah Tinggi Agama Islam Sidogiri';
+    $campusLogo = null;
+    try {
+        $rowCamp = $pdo->query("SELECT `kunci`, `nilai` FROM `pengaturan` WHERE `kunci` IN ('nama_kampus', 'subjudul_kampus')")->fetchAll();
+        foreach ($rowCamp as $rc) {
+            if ($rc['kunci'] === 'nama_kampus') $campusName = json_decode($rc['nilai'], true) ?: 'STAI SIDOGIRI';
+            if ($rc['kunci'] === 'subjudul_kampus') $campusSub = json_decode($rc['nilai'], true) ?: $campusSub;
+        }
+        $rowLogo = $pdo->query("SELECT `path` FROM `media` WHERE `koleksi` = 'logo' AND `aktif` = 1 ORDER BY `id` DESC LIMIT 1")->fetch();
+        if ($rowLogo && !empty($rowLogo['path'])) {
+            $campusLogo = str_starts_with($rowLogo['path'], 'http') ? $rowLogo['path'] : '../storage/' . ltrim($rowLogo['path'], '/');
+        }
+    } catch (Exception $e) {}
+
+    $loginBaseUrl = function_exists('getBaseUrl') ? getBaseUrl() : '..';
+    ?>
+    <!DOCTYPE html>
+    <html lang="id">
+    <head>
+      <meta charset="utf-8">
+      <title>Masuk Rekapitulasi Presensi Mahasiswa - <?= htmlspecialchars($campusName) ?></title>
+      <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
+      <link rel="preconnect" href="https://fonts.googleapis.com">
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+      <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+      <style>
+        :root {
+          --brand: #009B4C;
+          --brand-dark: #006b34;
+          --brand-soft: #e6f6ed;
+          --ink: #0f172a;
+          --muted: #64748b;
+          --line: #e2e8f0;
+          --card: #ffffff;
+          --bg: #f8fafc;
+          --sky: #0284c7;
+          --sky-soft: #e0f2fe;
+          --rose: #e11d48;
+          --rose-soft: #ffe4e6;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+          font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+          background: linear-gradient(135deg, #f0fdf4 0%, #f8fafc 50%, #e0f2fe 100%);
+          color: var(--ink);
+          min-height: 100vh;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 24px 16px;
+        }
+        .login-card {
+          width: 100%;
+          max-width: 480px;
+          background: var(--card);
+          border-radius: 28px;
+          border: 1px solid var(--line);
+          padding: 36px 28px;
+          box-shadow: 0 20px 40px -10px rgba(0, 155, 76, 0.12), 0 2px 8px rgba(0,0,0,0.04);
+          text-align: center;
+        }
+        .logo-box {
+          width: 64px;
+          height: 64px;
+          background: linear-gradient(135deg, var(--sky), #38bdf8);
+          border-radius: 20px;
+          display: grid;
+          place-items: center;
+          color: #fff;
+          font-size: 26px;
+          font-weight: 800;
+          margin: 0 auto 16px;
+          box-shadow: 0 8px 20px rgba(2, 132, 199, 0.22);
+          overflow: hidden;
+        }
+        .logo-box img { width: 100%; height: 100%; object-fit: contain; background: #fff; padding: 2px; }
+        h1 { font-size: 21px; font-weight: 800; color: var(--brand-dark); line-height: 1.3; }
+        p.sub { font-size: 13.5px; color: var(--muted); margin-top: 6px; margin-bottom: 22px; line-height: 1.45; }
+        
+        .info-pill {
+          background: var(--sky-soft);
+          border: 1px solid #bae6fd;
+          color: #0369a1;
+          border-radius: 12px;
+          padding: 10px 14px;
+          font-size: 13px;
+          font-weight: 600;
+          margin-bottom: 22px;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          text-align: left;
+        }
+        .form-group { margin-bottom: 16px; text-align: left; }
+        .form-group label { display: block; font-size: 13px; font-weight: 700; color: var(--ink); margin-bottom: 6px; }
+        .form-control {
+          width: 100%;
+          height: 48px;
+          padding: 0 14px;
+          border: 2px solid var(--line);
+          border-radius: 12px;
+          font-size: 14.5px;
+          font-weight: 600;
+          outline: none;
+          background: #fff;
+          transition: all .2s;
+          font-family: inherit;
+        }
+        .form-control:focus { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(0, 155, 76, 0.12); }
+        .btn-submit {
+          width: 100%;
+          height: 50px;
+          background: var(--sky);
+          color: #fff;
+          border: none;
+          border-radius: 14px;
+          font-size: 15px;
+          font-weight: 800;
+          cursor: pointer;
+          box-shadow: 0 6px 18px rgba(2, 132, 199, 0.25);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          margin-top: 20px;
+          transition: all .2s;
+          font-family: inherit;
+        }
+        .btn-submit:hover { background: #0369a1; transform: translateY(-1px); }
+        .btn-submit:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
+        
+        .toast {
+          display: none;
+          padding: 12px 14px;
+          border-radius: 12px;
+          font-size: 13.5px;
+          font-weight: 600;
+          margin-bottom: 16px;
+          text-align: left;
+        }
+        .toast.ok { background: var(--brand-soft); color: var(--brand-dark); border: 1px solid #bbf7d0; display: block; }
+        .toast.err { background: var(--rose-soft); color: var(--rose); border: 1px solid #fecdd3; display: block; }
+        
+        .footer-links {
+          margin-top: 24px;
+          padding-top: 18px;
+          border-top: 1px solid var(--line);
+          display: flex;
+          justify-content: space-around;
+          font-size: 12.5px;
+        }
+        .footer-links a { color: var(--muted); text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 5px; }
+        .footer-links a:hover { color: var(--brand-dark); }
+      </style>
+    </head>
+    <body>
+      <div class="login-card">
+        <div class="logo-box">
+          <?php if ($campusLogo): ?>
+            <img src="<?= htmlspecialchars($campusLogo) ?>" alt="Logo">
+          <?php else: ?>
+            <i class="fa-solid fa-table-cells"></i>
+          <?php endif; ?>
+        </div>
+        <h1>Rekapitulasi Presensi</h1>
+        <p class="sub"><?= htmlspecialchars($campusName) ?></p>
+
+        <div class="info-pill">
+          <i class="fa-solid fa-circle-info" style="font-size:16px;flex-shrink:0"></i>
+          <span>Silakan pilih nama dosen pengajar Anda untuk membuka rekapitulasi kehadiran mahasiswa per mata kuliah.</span>
+        </div>
+
+        <div class="toast" id="toastMsg"></div>
+
+        <form id="formLoginDosen">
+          <div class="form-group">
+            <label for="selDosen"><i class="fa-solid fa-user-tie"></i> Pilih Nama Dosen Pengajar</label>
+            <select id="selDosen" class="form-control" onchange="onSelChange(this)">
+              <option value="">-- Pilih dari Daftar Dosen --</option>
+              <?php foreach ($allDosen as $d): ?>
+                <option value="<?= $d['id'] ?>" data-nidn="<?= htmlspecialchars($d['kode_nidn']) ?>">
+                  <?= htmlspecialchars($d['nama']) ?> (<?= htmlspecialchars($d['kode_nidn']) ?>)
+                </option>
+              <?php endforeach; ?>
+            </select>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:10px;margin:14px 0">
+            <div style="flex:1;height:1px;background:var(--line)"></div>
+            <span style="font-size:11px;color:var(--muted);font-weight:700">ATAU MASUKKAN NIDN</span>
+            <div style="flex:1;height:1px;background:var(--line)"></div>
+          </div>
+
+          <div class="form-group">
+            <label for="inputNidn"><i class="fa-solid fa-id-card"></i> NIDN / Kode Dosen</label>
+            <input type="text" id="inputNidn" class="form-control" placeholder="Contoh: D001 atau NIDN">
+          </div>
+
+          <div class="form-group" id="pinGroup" style="display:none">
+            <label for="inputPin"><i class="fa-solid fa-lock"></i> PIN Keamanan</label>
+            <input type="password" id="inputPin" class="form-control" placeholder="Masukkan PIN keamanan">
+          </div>
+
+          <button type="submit" class="btn-submit" id="btnSubmit">
+            <i class="fa-solid fa-arrow-right-to-bracket"></i>
+            <span>Masuk ke Rekap Presensi</span>
+          </button>
+        </form>
+
+        <div class="footer-links">
+          <a href="<?= htmlspecialchars($loginBaseUrl) ?>/dosen/index.php"><i class="fa-solid fa-chalkboard-user"></i> Portal Dosen</a>
+          <a href="<?= htmlspecialchars($loginBaseUrl) ?>/login.php"><i class="fa-solid fa-shapes"></i> Pusat Portal</a>
+        </div>
+      </div>
+
+      <script>
+        function onSelChange(sel) {
+          const opt = sel.options[sel.selectedIndex];
+          const nidn = opt ? opt.dataset.nidn : '';
+          const inputNidn = document.getElementById('inputNidn');
+          if (inputNidn && nidn) {
+            inputNidn.value = nidn;
+          }
+        }
+
+        const form = document.getElementById('formLoginDosen');
+        const toast = document.getElementById('toastMsg');
+        const btn = document.getElementById('btnSubmit');
+
+        function showToast(msg, type) {
+          toast.className = 'toast ' + type;
+          toast.textContent = msg;
+        }
+
+        form.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const sel = document.getElementById('selDosen');
+          const dosenId = sel ? sel.value : 0;
+          const nidn = document.getElementById('inputNidn').value.trim();
+          const pin = document.getElementById('inputPin').value.trim();
+
+          btn.disabled = true;
+          btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> <span>Memproses...</span>';
+
+          const loginApi = '<?= $loginBaseUrl ?>/api/v1/dosen/login.php';
+
+          try {
+            const res = await fetch(loginApi, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ dosen_id: dosenId, nidn: nidn, pin: pin })
+            });
+            const json = await res.json();
+
+            if (json.success) {
+              showToast(json.pesan, 'ok');
+              setTimeout(() => {
+                window.location.reload();
+              }, 500);
+            } else {
+              if (json.need_pin) {
+                const pinGroup = document.getElementById('pinGroup');
+                if (pinGroup) pinGroup.style.display = 'block';
+                document.getElementById('inputPin').focus();
+              }
+              showToast(json.pesan || 'Gagal masuk', 'err');
+              btn.disabled = false;
+              btn.innerHTML = '<i class="fa-solid fa-arrow-right-to-bracket"></i> <span>Masuk ke Rekap Presensi</span>';
+            }
+          } catch (err) {
+            showToast('Koneksi terputus: ' + err.message, 'err');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-arrow-right-to-bracket"></i> <span>Masuk ke Rekap Presensi</span>';
+          }
+        });
+      </script>
+    </body>
+    </html>
+    <?php
     exit;
 }
 

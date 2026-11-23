@@ -16,6 +16,8 @@
     # Surface 2: Presensi HP Pengurus (Web Views)
     RewriteRule ^absen/?$ absen/index.php [L,QSA]
     RewriteRule ^absen/scan/?$ absen/scan.php [L,QSA]
+    RewriteRule ^absen_pengurus/?$ absen_pengurus.php [L,QSA]
+    RewriteRule ^absen-pengurus/?$ absen_pengurus.php [L,QSA]
 
     # Surface 2: Presensi HP Pengurus (API Endpoints)
     RewriteRule ^api/v1/absen/login/?$ api/v1/absen/login.php [L,QSA]
@@ -26,8 +28,26 @@
     # Surface 3: Panel Admin Kampus
     RewriteRule ^admin/?$ admin/index.php [L,QSA]
 
-    # Surface 4: Portal Dosen Kampus
+    # Surface 4: Portal Dosen Kampus & Presensi Mahasiswa
     RewriteRule ^dosen/?$ dosen/index.php [L,QSA]
+    RewriteRule ^dosen/presensi_mahasiswa/?$ dosen/presensi_mahasiswa.php [L,QSA]
+    RewriteRule ^dosen/presensi-mahasiswa/?$ dosen/presensi_mahasiswa.php [L,QSA]
+    RewriteRule ^dosen/presensi/?$ dosen/presensi_mahasiswa.php [L,QSA]
+    RewriteRule ^dosen/rekap_presensi/?$ dosen/rekap_presensi.php [L,QSA]
+    RewriteRule ^dosen/rekap-presensi/?$ dosen/rekap_presensi.php [L,QSA]
+    RewriteRule ^dosen/rekap/?$ dosen/rekap_presensi.php [L,QSA]
+
+    # Shortcut Root Presensi & Rekap Dosen
+    RewriteRule ^presensi_mahasiswa/?$ dosen/presensi_mahasiswa.php [L,QSA]
+    RewriteRule ^presensi-mahasiswa/?$ dosen/presensi_mahasiswa.php [L,QSA]
+    RewriteRule ^rekap_presensi/?$ dosen/rekap_presensi.php [L,QSA]
+    RewriteRule ^rekap-presensi/?$ dosen/rekap_presensi.php [L,QSA]
+
+    # Fallback Otomatis untuk File .php Tanpa Ekstensi
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_FILENAME}\.php -f
+    RewriteRule ^(.+?)/?$ $1.php [L,QSA]
+
     RewriteRule ^api/v1/dosen/login/?$ api/v1/dosen/login.php [L,QSA]
     RewriteRule ^api/v1/dosen/logout/?$ api/v1/dosen/logout.php [L,QSA]
     RewriteRule ^api/v1/dosen/jadwal/?$ api/v1/dosen/jadwal.php [L,QSA]

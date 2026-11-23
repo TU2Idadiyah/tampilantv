@@ -777,7 +777,14 @@ if ($dosen) {
           <i class="fa-solid fa-chalkboard-user"></i>
         </div>
         <h2>Masuk Portal Dosen</h2>
-        <p class="sub">Pilih nama Anda atau masukkan NIDN untuk mengonfirmasi kehadiran mengajar hari ini.</p>
+        <p class="sub">Pilih nama Anda atau masukkan NIDN untuk mengonfirmasi kehadiran mengajar atau mengelola presensi kelas.</p>
+
+        <?php if (!empty($_GET['redirect'])): ?>
+          <div style="background:#e0f2fe;color:#0369a1;border:1px solid #bae6fd;padding:12px 16px;border-radius:14px;margin-bottom:18px;font-size:13.5px;font-weight:600;display:flex;align-items:center;gap:10px;text-align:left">
+            <i class="fa-solid fa-circle-info" style="font-size:18px;flex-shrink:0"></i>
+            <span>Silakan masuk dengan akun Anda untuk melanjutkan ke halaman yang dituju.</span>
+          </div>
+        <?php endif; ?>
 
         <form id="formLogin">
           <div class="form-group">
@@ -1279,7 +1286,13 @@ if ($dosen) {
 
           if (json.success) {
             showToast(json.pesan, 'ok');
-            setTimeout(() => window.location.reload(), 600);
+            const urlParams = new URLSearchParams(window.location.search);
+            const redirectUrl = urlParams.get('redirect');
+            if (redirectUrl) {
+              setTimeout(() => window.location.href = redirectUrl, 500);
+            } else {
+              setTimeout(() => window.location.reload(), 600);
+            }
           } else {
             if (json.need_pin) {
               const pinGroup = document.getElementById('pinGroup');

@@ -186,19 +186,31 @@ try {
         </div>
 
         <div class="portal-grid">
-            <!-- 1. Portal Dosen -->
+            <!-- 1. Portal Dosen (Konfirmasi Mengajar) -->
             <a href="dosen/index.php" class="portal-card">
                 <div class="portal-icon pi-dosen">
                     <i class="fa-solid fa-chalkboard-user"></i>
                 </div>
                 <div class="portal-info">
-                    <b>Portal Dosen <span class="portal-badge" style="background:#e0f2fe;color:#0284c7">Dosen Pengajar</span></b>
-                    <small>Konfirmasi kehadiran mengajar, presensi mahasiswa kelas, dan jurnal materi perkuliahan.</small>
+                    <b>Portal Dosen (Konfirmasi Mengajar) <span class="portal-badge" style="background:#e0f2fe;color:#0284c7">Dosen Pengajar</span></b>
+                    <small>Konfirmasi kehadiran mengajar harian, mode daring/luring, dan info tukar jam kuliah.</small>
                 </div>
                 <div class="arrow"><i class="fa-solid fa-arrow-right"></i></div>
             </a>
 
-            <!-- 2. Panel Admin -->
+            <!-- 2. Presensi Mahasiswa & Jurnal Dosen -->
+            <a href="dosen/presensi_mahasiswa.php" class="portal-card" style="border-color:#bae6fd;background:linear-gradient(to right, #ffffff, #f0f9ff)">
+                <div class="portal-icon" style="background:#e0f2fe;color:#0284c7">
+                    <i class="fa-solid fa-clipboard-user"></i>
+                </div>
+                <div class="portal-info">
+                    <b>Presensi Mahasiswa &amp; Jurnal Kuliah <span class="portal-badge" style="background:#e0f2fe;color:#0284c7">Dosen Kelas</span></b>
+                    <small>Input kehadiran mahasiswa per pertemuan (H/I/S/A) &amp; catatan materi jurnal kuliah.</small>
+                </div>
+                <div class="arrow"><i class="fa-solid fa-arrow-right"></i></div>
+            </a>
+
+            <!-- 3. Panel Admin -->
             <a href="admin/login.php" class="portal-card">
                 <div class="portal-icon pi-admin">
                     <i class="fa-solid fa-user-shield"></i>
@@ -210,7 +222,7 @@ try {
                 <div class="arrow"><i class="fa-solid fa-arrow-right"></i></div>
             </a>
 
-            <!-- 3. Presensi Pengurus (Mobile) -->
+            <!-- 4. Presensi Pengurus (Mobile) -->
             <a href="absen/index.php" class="portal-card">
                 <div class="portal-icon pi-absen">
                     <i class="fa-solid fa-mobile-screen-button"></i>
@@ -222,7 +234,7 @@ try {
                 <div class="arrow"><i class="fa-solid fa-arrow-right"></i></div>
             </a>
 
-            <!-- 4. Layar Khusus Absen Pengurus (Kiosk QR Interaktif) -->
+            <!-- 5. Layar Khusus Absen Pengurus (Kiosk QR Interaktif) -->
             <a href="absen_pengurus.php" class="portal-card" style="border-color:#86efac;background:linear-gradient(to right, #ffffff, #f0fdf4)">
                 <div class="portal-icon" style="background:#dcfce7;color:#15803d">
                     <i class="fa-solid fa-id-card-clip"></i>
