@@ -258,6 +258,7 @@ function ensurePresensiMahasiswaTables(PDO $pdo): void {
                 `nim` TEXT NULL,
                 `nama` TEXT NOT NULL,
                 `status` TEXT NOT NULL DEFAULT 'hadir',
+                `status_akademik` TEXT NULL DEFAULT 'Aktif',
                 `catatan` TEXT NULL,
                 `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
                 `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -308,6 +309,7 @@ function ensurePresensiMahasiswaTables(PDO $pdo): void {
                 `nim` VARCHAR(50) NULL,
                 `nama` VARCHAR(150) NOT NULL,
                 `status` VARCHAR(20) NOT NULL DEFAULT 'hadir',
+                `status_akademik` VARCHAR(30) NULL DEFAULT 'Aktif',
                 `catatan` VARCHAR(255) NULL,
                 `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
                 `updated_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,

@@ -421,10 +421,11 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
                 $mhsNims = $_POST['mhs_nim'] ?? [];
                 $mhsNamas = $_POST['mhs_nama'] ?? [];
                 $mhsStatuses = $_POST['status'] ?? [];
+                $mhsStatusAkademik = $_POST['status_akademik'] ?? [];
                 $mhsKets = $_POST['catatan_mhs'] ?? [];
 
-                $insertP = $pdo->prepare("INSERT INTO `presensi_mahasiswa` (jurnal_id, jadwal_id, nim, nama, status, catatan, created_at, updated_at)
-                    VALUES (:jid, :jadwal_id, :nim, :nama, :status, :catatan, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)");
+                $insertP = $pdo->prepare("INSERT INTO `presensi_mahasiswa` (jurnal_id, jadwal_id, nim, nama, status, status_akademik, catatan, created_at, updated_at)
+                    VALUES (:jid, :jadwal_id, :nim, :nama, :status, :status_akademik, :catatan, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)");
 
                 $checkKm = $pdo->prepare("SELECT id FROM `kelas_mahasiswa` WHERE jadwal_id = :jid AND nama = :nama LIMIT 1");
                 $insertKm = $pdo->prepare("INSERT INTO `kelas_mahasiswa` (jadwal_id, nim, nama, created_at) VALUES (:jid, :nim, :nama, CURRENT_TIMESTAMP)");
@@ -434,6 +435,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
                     if ($namaMhs === '') continue;
                     $nim = trim($mhsNims[$idx] ?? '');
                     $status = $mhsStatuses[$idx] ?? 'hadir';
+                    $statusAkad = trim($mhsStatusAkademik[$idx] ?? 'Aktif');
                     $ket = trim($mhsKets[$idx] ?? '');
 
                     $insertP->execute([
@@ -442,6 +444,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
                         'nim' => $nim,
                         'nama' => $namaMhs,
                         'status' => $status,
+                        'status_akademik' => $statusAkad,
                         'catatan' => $ket
                     ]);
 
@@ -760,9 +763,20 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv' && $activeJadwal) {
       display: flex;
       gap: 12px;
       overflow-x: auto;
-      padding-bottom: 6px;
+      padding-bottom: 8px;
       -webkit-overflow-scrolling: touch;
       scroll-snap-type: x mandatory;
+    }
+    .class-tabs::-webkit-scrollbar {
+      height: 6px;
+    }
+    .class-tabs::-webkit-scrollbar-track {
+      background: #f1f5f9;
+      border-radius: 4px;
+    }
+    .class-tabs::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
     }
     .class-tab {
       background: #f8fafc;
@@ -962,135 +976,187 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv' && $activeJadwal) {
     .mhs-counter-pill b { font-size: 16px; font-weight: 800; line-height: 1; }
     .mhs-counter-pill span { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; }
 
-    /* Student Attendance Cards */
-    .attendance-cards {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
+    /* Student Cards Grid (Sesuai Desain Gambar User) */
+    .attendance-cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 16px;
       width: 100%;
+      box-sizing: border-box;
     }
+    @media (max-width: 640px) {
+      .attendance-cards-grid {
+        grid-template-columns: 1fr !important;
+        gap: 14px !important;
+      }
+    }
+
+    /* Single Student Card */
     .student-card {
       background: #ffffff;
-      border: 1.5px solid var(--line);
-      border-radius: 14px;
-      padding: 12px 14px;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
-      display: grid;
-      grid-template-columns: 32px 1fr 340px 200px;
-      align-items: center;
-      gap: 12px;
+      border: 1px solid #e9edf2;
+      border-radius: 20px;
+      padding: 22px 24px;
+      box-shadow: 0 4px 18px rgba(15, 23, 42, 0.04);
+      display: flex;
+      flex-direction: column;
       transition: all .2s ease;
       width: 100%;
       box-sizing: border-box;
     }
     .student-card:hover, .student-card:focus-within {
-      border-color: var(--brand);
-      box-shadow: 0 4px 12px rgba(0, 155, 76, 0.1);
+      border-color: #cbd5e1;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.07);
     }
-    .sc-no {
-      width: 28px;
-      height: 28px;
-      border-radius: 8px;
-      background: #f1f5f9;
-      color: #475569;
+    .card-student-nim {
+      font-size: 13.5px;
+      font-weight: 600;
+      color: #64748b;
+      letter-spacing: 0.3px;
+      margin-bottom: 4px;
+      font-family: inherit;
+    }
+    .card-student-name {
+      font-size: 17.5px;
       font-weight: 800;
-      font-size: 12px;
-      display: grid;
-      place-items: center;
-      flex-shrink: 0;
-    }
-    .sc-header-mobile {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      min-width: 0;
-    }
-    .sc-nama {
-      font-size: 14px;
-      font-weight: 800;
-      color: var(--ink);
-      line-height: 1.35;
+      color: #0f172a;
+      text-transform: uppercase;
+      letter-spacing: -0.2px;
+      line-height: 1.3;
       word-break: break-word;
     }
-    .sc-nim {
-      font-size: 11.5px;
-      color: var(--muted);
-      font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
-      font-weight: 700;
-      display: inline-block;
+    .card-student-divider {
+      height: 1px;
+      background: #f1f5f9;
+      margin: 16px 0 18px 0;
+      width: 100%;
     }
-    .sc-status-options {
+    .card-field-group {
+      margin-bottom: 16px;
+    }
+    .card-field-group:last-of-type {
+      margin-bottom: 0;
+    }
+    .card-field-label {
+      display: block;
+      font-size: 11px;
+      font-weight: 800;
+      color: #7b8e9f;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 8px;
+    }
+    .card-select-wrap {
+      position: relative;
+      width: 100%;
+    }
+    .card-select-status {
+      width: 100%;
+      height: 48px;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 0 42px 0 16px;
+      font-size: 15px;
+      font-weight: 600;
+      color: #1e293b;
+      background: #ffffff;
+      outline: none;
+      cursor: pointer;
+      -webkit-appearance: none;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: calc(100% - 16px) center;
+      transition: all .2s;
+      font-family: inherit;
+    }
+    .card-select-status:focus {
+      border-color: #009B4C;
+      box-shadow: 0 0 0 3px rgba(0, 155, 76, 0.1);
+    }
+
+    /* Segmented Pill Container (PILIH KEHADIRAN) */
+    .card-presence-track {
+      background: #f1f4f8;
+      border-radius: 16px;
+      padding: 5px;
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 6px;
+      gap: 5px;
+      align-items: center;
+      box-sizing: border-box;
     }
-    .sc-option {
+    .card-presence-opt {
       position: relative;
     }
-    .sc-option input[type="radio"] {
+    .card-presence-opt input[type="radio"] {
       position: absolute;
       opacity: 0;
       width: 0;
       height: 0;
       pointer-events: none;
     }
-    .sc-btn {
-      height: 38px;
-      border-radius: 8px;
+    .presence-pill-btn {
+      height: 44px;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 4px;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 700;
+      color: #52637a;
       cursor: pointer;
       user-select: none;
-      font-weight: 800;
-      font-size: 12.5px;
-      color: #64748b;
-      background: #f8fafc;
-      border: 1px solid var(--line);
       transition: all .15s ease;
+      background: transparent;
     }
-    .sc-btn i { font-size: 13px; }
-    .sc-option input[type="radio"]:checked + .sc-btn.btn-h {
-      background: #16a34a;
-      color: #fff;
-      border-color: #15803d;
-      box-shadow: 0 3px 8px rgba(22, 163, 74, 0.28);
+    .card-presence-opt input[type="radio"]:checked + .presence-pill-btn.btn-h {
+      background: #48b884;
+      color: #ffffff;
+      font-weight: 800;
+      box-shadow: 0 4px 12px rgba(72, 184, 132, 0.35);
     }
-    .sc-option input[type="radio"]:checked + .sc-btn.btn-i {
+    .card-presence-opt input[type="radio"]:checked + .presence-pill-btn.btn-i {
       background: #0284c7;
-      color: #fff;
-      border-color: #0369a1;
-      box-shadow: 0 3px 8px rgba(2, 132, 199, 0.28);
+      color: #ffffff;
+      font-weight: 800;
+      box-shadow: 0 4px 12px rgba(2, 132, 199, 0.35);
     }
-    .sc-option input[type="radio"]:checked + .sc-btn.btn-s {
-      background: #d97706;
-      color: #fff;
-      border-color: #b45309;
-      box-shadow: 0 3px 8px rgba(217, 119, 6, 0.28);
+    .card-presence-opt input[type="radio"]:checked + .presence-pill-btn.btn-s {
+      background: #f59e0b;
+      color: #ffffff;
+      font-weight: 800;
+      box-shadow: 0 4px 12px rgba(245, 158, 11, 0.35);
     }
-    .sc-option input[type="radio"]:checked + .sc-btn.btn-a {
-      background: #dc2626;
-      color: #fff;
-      border-color: #b91c1c;
-      box-shadow: 0 3px 8px rgba(220, 38, 38, 0.28);
+    .card-presence-opt input[type="radio"]:checked + .presence-pill-btn.btn-a {
+      background: #ef4444;
+      color: #ffffff;
+      font-weight: 800;
+      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.35);
     }
-    .sc-note input {
+
+    /* Catatan Khusus Mahasiswa */
+    .card-note-wrap {
+      margin-top: 12px;
+    }
+    .card-note-input {
       width: 100%;
       height: 36px;
-      padding: 6px 10px;
-      border-radius: 8px;
-      border: 1.5px solid var(--line);
+      border: 1px dashed #cbd5e1;
+      border-radius: 10px;
+      padding: 0 12px;
       font-size: 12.5px;
-      background: #f8fafc;
-      color: var(--ink);
+      color: #334155;
+      background: #fbfcfd;
       outline: none;
       box-sizing: border-box;
       transition: all .2s;
+      font-family: inherit;
     }
-    .sc-note input:focus {
-      background: #fff;
-      border-color: var(--brand);
+    .card-note-input:focus {
+      background: #ffffff;
+      border: 1px solid #009B4C;
+      box-shadow: 0 0 0 2px rgba(0, 155, 76, 0.1);
     }
 
     /* Buttons */
@@ -1247,42 +1313,21 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv' && $activeJadwal) {
         height: 44px !important;
       }
 
-      /* Kartu Mahasiswa Full Touch di Layar HP */
+      /* Kartu Mahasiswa di Layar HP */
       .student-card {
-        display: flex !important;
-        flex-direction: column !important;
-        padding: 14px 12px !important;
-        border-radius: 16px !important;
-        gap: 10px !important;
+        padding: 18px 16px !important;
+        border-radius: 18px !important;
       }
-      .sc-header-mobile {
-        display: flex !important;
-        align-items: center !important;
-        gap: 10px !important;
+      .card-student-name {
+        font-size: 16px !important;
       }
-      .sc-status-options {
-        display: grid !important;
-        grid-template-columns: repeat(4, 1fr) !important;
-        gap: 6px !important;
-        background: #f1f5f9 !important;
-        padding: 4px !important;
-        border-radius: 12px !important;
+      .card-select-status {
+        height: 46px !important;
+        font-size: 14.5px !important;
       }
-      .sc-btn {
-        height: 44px !important;
-        font-size: 13.5px !important;
-        border-radius: 9px !important;
-        flex-direction: column !important;
-        gap: 2px !important;
-      }
-      .sc-btn span {
-        font-size: 11px !important;
-        font-weight: 700 !important;
-      }
-      .sc-note input {
-        height: 38px !important;
-        font-size: 13px !important;
-        border-radius: 10px !important;
+      .presence-pill-btn {
+        height: 42px !important;
+        font-size: 15px !important;
       }
 
       .jurnal-item {
@@ -1551,6 +1596,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv' && $activeJadwal) {
                         'nim' => $pRow['nim'],
                         'nama' => $pRow['nama'],
                         'status' => $pRow['status'],
+                        'status_akademik' => $pRow['status_akademik'] ?? 'Aktif',
                         'catatan' => $pRow['catatan']
                     ];
                 }
@@ -1560,6 +1606,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv' && $activeJadwal) {
                         'nim' => $rm['nim'],
                         'nama' => $rm['nama'],
                         'status' => 'hadir',
+                        'status_akademik' => 'Aktif',
                         'catatan' => ''
                     ];
                 }
@@ -1620,53 +1667,51 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv' && $activeJadwal) {
               </p>
             </div>
           <?php else: ?>
-            <div class="attendance-cards" id="attendanceCardContainer">
+            <div class="attendance-cards-grid" id="attendanceCardContainer">
               <?php foreach ($displayStudents as $sIdx => $st): ?>
                 <div class="student-card row-student" data-name="<?= strtolower(htmlspecialchars($st['nama'])) ?>" data-nim="<?= strtolower(htmlspecialchars($st['nim'] ?? '')) ?>">
                   <input type="hidden" name="mhs_nim[]" value="<?= htmlspecialchars($st['nim'] ?? '') ?>">
                   <input type="hidden" name="mhs_nama[]" value="<?= htmlspecialchars($st['nama']) ?>">
                   
-                  <div class="sc-header-mobile">
-                    <span class="sc-no"><?= $sIdx + 1 ?></span>
-                    <div style="flex:1;min-width:0">
-                      <div class="sc-nama"><?= htmlspecialchars($st['nama']) ?></div>
-                      <div class="sc-nim"><?= htmlspecialchars($st['nim'] ?: '-') ?></div>
+                  <div class="card-student-nim"><?= htmlspecialchars($st['nim'] ?: '-') ?></div>
+                  <div class="card-student-name"><?= htmlspecialchars($st['nama']) ?></div>
+                  <div class="card-student-divider"></div>
+
+                  <div class="card-field-group">
+                    <label class="card-field-label">STATUS AKADEMIK</label>
+                    <div class="card-select-wrap">
+                      <select name="status_akademik[]" class="card-select-status">
+                        <option value="Aktif" <?= ($st['status_akademik'] ?? 'Aktif') === 'Aktif' ? 'selected' : '' ?>>Aktif</option>
+                        <option value="Cuti" <?= ($st['status_akademik'] ?? '') === 'Cuti' ? 'selected' : '' ?>>Cuti</option>
+                        <option value="Non-Aktif" <?= ($st['status_akademik'] ?? '') === 'Non-Aktif' ? 'selected' : '' ?>>Non-Aktif</option>
+                      </select>
                     </div>
                   </div>
 
-                  <div class="sc-status-options">
-                    <div class="sc-option">
-                      <input type="radio" id="st_h_<?= $sIdx ?>" name="status[<?= $sIdx ?>]" value="hadir" <?= ($st['status'] ?? 'hadir') === 'hadir' ? 'checked' : '' ?>>
-                      <label for="st_h_<?= $sIdx ?>" class="sc-btn btn-h" title="Hadir">
-                        <i class="fa-solid fa-check"></i>
-                        <span>Hadir</span>
-                      </label>
-                    </div>
-                    <div class="sc-option">
-                      <input type="radio" id="st_i_<?= $sIdx ?>" name="status[<?= $sIdx ?>]" value="izin" <?= ($st['status'] ?? '') === 'izin' ? 'checked' : '' ?>>
-                      <label for="st_i_<?= $sIdx ?>" class="sc-btn btn-i" title="Izin">
-                        <i class="fa-solid fa-envelope-open-text"></i>
-                        <span>Izin</span>
-                      </label>
-                    </div>
-                    <div class="sc-option">
-                      <input type="radio" id="st_s_<?= $sIdx ?>" name="status[<?= $sIdx ?>]" value="sakit" <?= ($st['status'] ?? '') === 'sakit' ? 'checked' : '' ?>>
-                      <label for="st_s_<?= $sIdx ?>" class="sc-btn btn-s" title="Sakit">
-                        <i class="fa-solid fa-notes-medical"></i>
-                        <span>Sakit</span>
-                      </label>
-                    </div>
-                    <div class="sc-option">
-                      <input type="radio" id="st_a_<?= $sIdx ?>" name="status[<?= $sIdx ?>]" value="alpa" <?= ($st['status'] ?? '') === 'alpa' ? 'checked' : '' ?>>
-                      <label for="st_a_<?= $sIdx ?>" class="sc-btn btn-a" title="Alpa / Tanpa Keterangan">
-                        <i class="fa-solid fa-xmark"></i>
-                        <span>Alpa</span>
-                      </label>
+                  <div class="card-field-group">
+                    <label class="card-field-label">PILIH KEHADIRAN</label>
+                    <div class="card-presence-track">
+                      <div class="card-presence-opt">
+                        <input type="radio" id="st_h_<?= $sIdx ?>" name="status[<?= $sIdx ?>]" value="hadir" <?= ($st['status'] ?? 'hadir') === 'hadir' ? 'checked' : '' ?>>
+                        <label for="st_h_<?= $sIdx ?>" class="presence-pill-btn btn-h" title="Hadir">H</label>
+                      </div>
+                      <div class="card-presence-opt">
+                        <input type="radio" id="st_i_<?= $sIdx ?>" name="status[<?= $sIdx ?>]" value="izin" <?= ($st['status'] ?? '') === 'izin' ? 'checked' : '' ?>>
+                        <label for="st_i_<?= $sIdx ?>" class="presence-pill-btn btn-i" title="Izin">I</label>
+                      </div>
+                      <div class="card-presence-opt">
+                        <input type="radio" id="st_s_<?= $sIdx ?>" name="status[<?= $sIdx ?>]" value="sakit" <?= ($st['status'] ?? '') === 'sakit' ? 'checked' : '' ?>>
+                        <label for="st_s_<?= $sIdx ?>" class="presence-pill-btn btn-s" title="Sakit">S</label>
+                      </div>
+                      <div class="card-presence-opt">
+                        <input type="radio" id="st_a_<?= $sIdx ?>" name="status[<?= $sIdx ?>]" value="alpa" <?= ($st['status'] ?? '') === 'alpa' ? 'checked' : '' ?>>
+                        <label for="st_a_<?= $sIdx ?>" class="presence-pill-btn btn-a" title="Alpa / Tanpa Keterangan">A</label>
+                      </div>
                     </div>
                   </div>
 
-                  <div class="sc-note">
-                    <input type="text" name="catatan_mhs[]" value="<?= htmlspecialchars($st['catatan'] ?? '') ?>" placeholder="Catatan/keterangan mahasiswa...">
+                  <div class="card-note-wrap">
+                    <input type="text" name="catatan_mhs[]" value="<?= htmlspecialchars($st['catatan'] ?? '') ?>" class="card-note-input" placeholder="Catatan khusus mahasiswa (opsional)...">
                   </div>
                 </div>
               <?php endforeach; ?>
