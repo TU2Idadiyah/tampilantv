@@ -831,6 +831,149 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv' && $activeJadwal) {
       .print-signatures { display: grid; grid-template-columns: 1fr 1fr; margin-top: 40px; page-break-inside: avoid; font-size: 12px; text-align: center; }
       .sign-box { padding-top: 60px; }
     }
+
+    /* Mobile Responsive Optimizations (Layar HP) */
+    .mobile-scroll-hint { display: none; }
+    .mobile-nim-sub { display: none; }
+
+    @media (max-width: 768px) {
+      body {
+        padding: 10px 8px;
+      }
+      .wrapper {
+        gap: 12px;
+      }
+      .top-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+        padding: 14px 12px;
+      }
+      .brand-box {
+        justify-content: flex-start;
+      }
+      .header-links {
+        display: grid;
+        grid-template-columns: 1fr 1fr auto auto;
+        gap: 6px;
+        width: 100%;
+      }
+      .dosen-pill {
+        grid-column: 1 / -1;
+        margin-bottom: 4px;
+        padding: 6px 10px;
+      }
+      .header-links .btn-icon {
+        justify-content: center;
+        padding: 8px 6px;
+        font-size: 11.5px;
+      }
+      .card {
+        padding: 16px 12px;
+        border-radius: 16px;
+      }
+      .card-head {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+      }
+      .card-head > div:last-child {
+        width: 100%;
+        display: grid !important;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+      }
+      .card-head > div:last-child .btn-primary {
+        grid-column: 1 / -1;
+        justify-content: center;
+        padding: 10px 14px;
+      }
+      .card-head > div:last-child .btn-icon {
+        justify-content: center;
+        padding: 8px 6px;
+        font-size: 11.5px;
+      }
+      .kpi-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+      }
+      .kpi-card {
+        padding: 12px 10px;
+        gap: 10px;
+        border-radius: 14px;
+      }
+      .kpi-icon {
+        width: 36px;
+        height: 36px;
+        font-size: 15px;
+        border-radius: 10px;
+      }
+      .kpi-val {
+        font-size: 18px;
+      }
+      .kpi-lbl {
+        font-size: 11px;
+      }
+      .class-tab {
+        min-width: 170px;
+        padding: 8px 10px;
+      }
+      .mobile-scroll-hint {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11.5px;
+        color: var(--brand-dark);
+        background: var(--brand-soft);
+        border: 1px dashed var(--brand);
+        border-radius: 8px;
+        padding: 8px 12px;
+        margin-bottom: 10px;
+      }
+      .mobile-nim-sub {
+        display: block;
+        font-size: 10.5px;
+        color: var(--muted);
+        font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+        font-weight: 600;
+        margin-top: 2px;
+      }
+      /* Sticky Kolom Nama Mahasiswa di Matriks Tabel */
+      .matrix-table {
+        font-size: 12px;
+      }
+      .matrix-table th:nth-child(1),
+      .matrix-table td:nth-child(1),
+      .matrix-table th:nth-child(2),
+      .matrix-table td:nth-child(2) {
+        display: none;
+      }
+      .matrix-table th:nth-child(3),
+      .matrix-table td:nth-child(3) {
+        position: sticky;
+        left: 0;
+        z-index: 2;
+        background: #f8fafc;
+        border-right: 1.5px solid var(--line);
+        box-shadow: 2px 0 6px rgba(0, 0, 0, 0.06);
+        min-width: 130px;
+        max-width: 160px;
+      }
+      .matrix-table tbody td:nth-child(3) {
+        background: #fff;
+      }
+      .matrix-table tbody tr:hover td:nth-child(3) {
+        background: #fdfdfd;
+      }
+      .jurnal-item {
+        flex-direction: column;
+        gap: 10px;
+      }
+      .jurnal-item > div:last-child {
+        width: 100%;
+        justify-content: space-between;
+      }
+    }
   </style>
 </head>
 <body>
@@ -1012,6 +1155,10 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv' && $activeJadwal) {
           </p>
         </div>
       <?php else: ?>
+        <div class="mobile-scroll-hint no-print">
+          <i class="fa-solid fa-arrows-left-right"></i>
+          <span>Geser tabel ke samping untuk melihat rincian P1 - P16 &amp; persentase</span>
+        </div>
         <div class="table-container">
           <table class="matrix-table">
             <thead>
@@ -1054,6 +1201,9 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv' && $activeJadwal) {
                   </td>
                   <td style="font-weight:700;color:#0f172a">
                     <?= htmlspecialchars($st['nama']) ?>
+                    <?php if (!empty($st['nim'])): ?>
+                      <div class="mobile-nim-sub"><?= htmlspecialchars($st['nim']) ?></div>
+                    <?php endif; ?>
                   </td>
 
                   <?php if (empty($jurnals)): ?>

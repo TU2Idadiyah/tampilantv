@@ -729,6 +729,88 @@ if ($dosen) {
     .weekly-item:last-child { border-bottom: none; }
     .weekly-item b { color: var(--ink); }
     .weekly-item small { color: var(--muted); }
+
+    /* Mobile Responsive Optimizations (Layar HP) */
+    @media (max-width: 640px) {
+      body {
+        padding: 10px 8px;
+      }
+      .container {
+        gap: 12px;
+      }
+      .top-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+        padding: 14px 12px;
+      }
+      .brand-box {
+        justify-content: flex-start;
+      }
+      .header-links {
+        display: grid;
+        grid-template-columns: 1fr 1fr auto auto;
+        gap: 6px;
+        width: 100%;
+      }
+      .header-links .btn-icon {
+        justify-content: center;
+        padding: 8px 6px;
+        font-size: 11.5px;
+      }
+      .profile-bar {
+        padding: 14px 12px;
+        gap: 12px;
+      }
+      .profile-avatar {
+        width: 46px;
+        height: 46px;
+        font-size: 18px;
+        border-radius: 12px;
+      }
+      .sch-card {
+        padding: 16px 14px;
+        border-radius: 16px;
+      }
+      .sch-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+      }
+      .sch-actions {
+        flex-direction: column;
+        gap: 8px;
+      }
+      .sch-actions .btn-action {
+        width: 100%;
+        justify-content: center;
+        height: 42px;
+        font-size: 13.5px;
+      }
+      .tabs-nav {
+        padding: 3px;
+        gap: 2px;
+      }
+      .tab-btn {
+        padding: 8px 6px;
+        font-size: 12px;
+      }
+      .modal-card {
+        margin: 10px;
+        padding: 20px 16px;
+        border-radius: 20px;
+        max-height: 92vh;
+      }
+      .weekly-group {
+        padding: 14px 12px;
+      }
+      .weekly-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+        padding: 10px 0;
+      }
+    }
   </style>
 </head>
 <body>

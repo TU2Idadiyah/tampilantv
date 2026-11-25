@@ -961,6 +961,203 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv' && $activeJadwal) {
     .badge-i { background: #e0f2fe; color: #0369a1; }
     .badge-s { background: #fef3c7; color: #b45309; }
     .badge-a { background: #fee2e2; color: #b91c1c; }
+
+    /* Mobile Responsive Optimizations (Layar HP) */
+    .mobile-sticky-action-bar {
+      display: none;
+    }
+    @media (max-width: 860px) {
+      .grid-layout { grid-template-columns: 1fr; }
+      .class-list-box {
+        display: flex;
+        overflow-x: auto;
+        gap: 10px;
+        padding-bottom: 6px;
+        -webkit-overflow-scrolling: touch;
+      }
+      .class-item {
+        flex: 0 0 240px;
+        margin-bottom: 0;
+      }
+    }
+    @media (max-width: 640px) {
+      body {
+        padding: 10px 8px 85px 8px !important;
+      }
+      .wrapper {
+        gap: 12px;
+      }
+      .card {
+        padding: 16px 14px !important;
+        border-radius: 16px !important;
+      }
+      .top-header {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 12px !important;
+        padding: 14px 12px !important;
+      }
+      .brand-box {
+        justify-content: flex-start !important;
+      }
+      .header-links {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr auto auto !important;
+        gap: 6px !important;
+        width: 100% !important;
+      }
+      .dosen-pill {
+        grid-column: 1 / -1;
+        margin-bottom: 4px;
+        padding: 6px 10px;
+      }
+      .header-links .btn-icon {
+        justify-content: center !important;
+        padding: 8px 6px !important;
+        font-size: 11.5px !important;
+      }
+      .form-row {
+        flex-direction: column !important;
+        gap: 10px !important;
+      }
+      .form-row > * {
+        width: 100% !important;
+      }
+
+      /* Transformasi Tabel Mahasiswa Menjadi Kartu Interaktif HP */
+      .table-container {
+        border: none !important;
+        background: transparent !important;
+        overflow-x: visible !important;
+      }
+      table.table-presensi {
+        min-width: 100% !important;
+        display: block !important;
+        background: transparent !important;
+      }
+      table.table-presensi thead {
+        display: none !important;
+      }
+      table.table-presensi tbody {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 10px !important;
+      }
+      table.table-presensi tr.row-student {
+        display: flex !important;
+        flex-direction: column !important;
+        background: #ffffff !important;
+        border: 1.5px solid var(--line) !important;
+        border-radius: 16px !important;
+        padding: 14px !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03) !important;
+        gap: 10px !important;
+        transition: all .2s ease !important;
+      }
+      table.table-presensi tr.row-student:focus-within {
+        border-color: var(--brand) !important;
+        box-shadow: 0 4px 14px rgba(0, 155, 76, 0.12) !important;
+      }
+      table.table-presensi td {
+        display: block !important;
+        padding: 0 !important;
+        border: none !important;
+      }
+      .col-no {
+        display: none !important;
+      }
+      .col-nama {
+        margin-bottom: -2px;
+      }
+      .mhs-nama-text {
+        font-size: 15px !important;
+        font-weight: 800 !important;
+        color: var(--ink) !important;
+        line-height: 1.35 !important;
+      }
+      .col-nim {
+        margin-top: -6px;
+      }
+      .mhs-nim-text {
+        font-size: 12px !important;
+        color: var(--muted) !important;
+        background: #f1f5f9;
+        padding: 2px 8px;
+        border-radius: 6px;
+        display: inline-block;
+      }
+      .status-group {
+        display: grid !important;
+        grid-template-columns: repeat(4, 1fr) !important;
+        width: 100% !important;
+        background: #f1f5f9 !important;
+        border-radius: 12px !important;
+        padding: 4px !important;
+        gap: 6px !important;
+      }
+      .status-option {
+        flex: 1 !important;
+      }
+      .status-label {
+        width: 100% !important;
+        height: 42px !important;
+        font-size: 14px !important;
+        font-weight: 800 !important;
+        border-radius: 9px !important;
+      }
+      .input-catatan {
+        font-size: 13px !important;
+        height: 38px !important;
+        border-radius: 10px !important;
+        background: #f8fafc !important;
+      }
+      .input-catatan:focus {
+        background: #fff !important;
+      }
+
+      /* Floating Sticky Action Bar */
+      .mobile-sticky-action-bar {
+        display: flex;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 1000;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(14px);
+        border-top: 1.5px solid var(--line);
+        padding: 10px 14px calc(10px + env(safe-area-inset-bottom, 0px));
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.08);
+      }
+      .m-stats {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+      .m-stat-pill {
+        padding: 5px 8px;
+        border-radius: 8px;
+        font-size: 11px;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+      }
+      .m-stat-pill.hadir { background: #dcfce7; color: #15803d; }
+      .m-stat-pill.izin  { background: #e0f2fe; color: #0369a1; }
+      .m-stat-pill.sakit { background: #fef3c7; color: #b45309; }
+      .m-stat-pill.alpa  { background: #fee2e2; color: #b91c1c; }
+      .m-btn-save {
+        padding: 10px 18px !important;
+        font-size: 13.5px !important;
+        height: 42px !important;
+        border-radius: 12px !important;
+        flex-shrink: 0;
+      }
+    }
   </style>
 </head>
 <body>
@@ -1033,7 +1230,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv' && $activeJadwal) {
             Belum ada jadwal perkuliahan aktif untuk akun dosen Anda. Silakan hubungi bagian akademik.
           </p>
         <?php else: ?>
-          <div>
+          <div class="class-list-box">
             <?php foreach ($classes as $c): ?>
               <?php $isActive = ((int)$c['id'] === $selectedJadwalId); ?>
               <a href="presensi_mahasiswa.php?jadwal_id=<?= $c['id'] ?>" class="class-item <?= $isActive ? 'active' : '' ?>">
@@ -1234,21 +1431,21 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv' && $activeJadwal) {
                     </thead>
                     <tbody>
                       <?php foreach ($displayStudents as $sIdx => $st): ?>
-                        <tr>
-                          <td style="text-align:center;font-weight:700;color:var(--muted);font-size:13px"><?= $sIdx + 1 ?></td>
-                          <td style="white-space:nowrap">
+                        <tr class="row-student">
+                          <td class="col-no" style="text-align:center;font-weight:700;color:var(--muted);font-size:13px"><?= $sIdx + 1 ?></td>
+                          <td class="col-nim" style="white-space:nowrap">
                             <input type="hidden" name="mhs_nim[]" value="<?= htmlspecialchars($st['nim'] ?? '') ?>">
-                            <span style="font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:13.5px;font-weight:700;color:#1e293b;letter-spacing:0.5px">
+                            <span class="mhs-nim-text" style="font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:13.5px;font-weight:700;color:#1e293b;letter-spacing:0.5px">
                               <?= htmlspecialchars($st['nim'] ?: '-') ?>
                             </span>
                           </td>
-                          <td>
+                          <td class="col-nama">
                             <input type="hidden" name="mhs_nama[]" value="<?= htmlspecialchars($st['nama']) ?>">
-                            <span style="font-size:14px;font-weight:700;color:#0f172a;display:block;line-height:1.4">
+                            <span class="mhs-nama-text" style="font-size:14px;font-weight:700;color:#0f172a;display:block;line-height:1.4">
                               <?= htmlspecialchars($st['nama']) ?>
                             </span>
                           </td>
-                          <td style="text-align:center">
+                          <td class="col-status" style="text-align:center">
                             <div class="status-group">
                               <div class="status-option">
                                 <input type="radio" id="st_h_<?= $sIdx ?>" name="status[<?= $sIdx ?>]" value="hadir" <?= ($st['status'] ?? 'hadir') === 'hadir' ? 'checked' : '' ?>>
@@ -1268,8 +1465,8 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv' && $activeJadwal) {
                               </div>
                             </div>
                           </td>
-                          <td>
-                            <input type="text" name="catatan_mhs[]" value="<?= htmlspecialchars($st['catatan'] ?? '') ?>" class="form-control" style="padding:6px 10px;font-size:12.5px;height:34px" placeholder="Catatan (opsional)">
+                          <td class="col-catatan">
+                            <input type="text" name="catatan_mhs[]" value="<?= htmlspecialchars($st['catatan'] ?? '') ?>" class="form-control input-catatan" style="padding:6px 10px;font-size:12.5px;height:34px" placeholder="Catatan (opsional)">
                           </td>
                         </tr>
                       <?php endforeach; ?>
@@ -1290,6 +1487,20 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv' && $activeJadwal) {
               </button>
             </div>
           </form>
+
+          <!-- Mobile Sticky Action Bar -->
+          <div class="mobile-sticky-action-bar">
+            <div class="m-stats">
+              <span class="m-stat-pill hadir" title="Total Hadir"><span id="mCountHadir">0</span> H</span>
+              <span class="m-stat-pill izin" title="Total Izin"><span id="mCountIzin">0</span> I</span>
+              <span class="m-stat-pill sakit" title="Total Sakit"><span id="mCountSakit">0</span> S</span>
+              <span class="m-stat-pill alpa" title="Total Alpa"><span id="mCountAlpa">0</span> A</span>
+            </div>
+            <button type="button" class="btn-primary m-btn-save" onclick="document.getElementById('formPresensi').submit()">
+              <i class="fa-solid fa-floppy-disk"></i>
+              <span>Simpan</span>
+            </button>
+          </div>
         </div>
 
         <!-- RIWAYAT JURNAL & REKAP KELAS -->
@@ -1391,12 +1602,38 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv' && $activeJadwal) {
 </div>
 
 <script>
+  function updateAttendanceCounts() {
+    let h = 0, i = 0, s = 0, a = 0;
+    document.querySelectorAll('.row-student input[type="radio"]:checked').forEach(r => {
+      if (r.value === 'hadir') h++;
+      else if (r.value === 'izin') i++;
+      else if (r.value === 'sakit') s++;
+      else if (r.value === 'alpa') a++;
+    });
+    const elH = document.getElementById('mCountHadir');
+    const elI = document.getElementById('mCountIzin');
+    const elS = document.getElementById('mCountSakit');
+    const elA = document.getElementById('mCountAlpa');
+    if (elH) elH.textContent = h;
+    if (elI) elI.textContent = i;
+    if (elS) elS.textContent = s;
+    if (elA) elA.textContent = a;
+  }
+
   function markAllStatus(status) {
     const radios = document.querySelectorAll(`input[type="radio"][value="${status}"]`);
     radios.forEach(r => {
       r.checked = true;
     });
+    updateAttendanceCounts();
   }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    updateAttendanceCounts();
+    document.querySelectorAll('.row-student input[type="radio"]').forEach(r => {
+      r.addEventListener('change', updateAttendanceCounts);
+    });
+  });
 </script>
 
 </body>
